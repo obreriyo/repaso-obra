@@ -40,18 +40,24 @@ export const ESTADO_VIVIENDA_TEXTO: Record<EstadoVivienda, string> = {
   revisada: 'Revisada'
 }
 
-/** planta 0 = planta baja */
+/** planta 0 = planta baja; planta 100 = ático (siempre queda por encima de las demás) */
+export const ATICO = 100
+
 export function plantaTexto(planta: number): string {
-  return planta === 0 ? 'Bajo' : `${planta}º`
+  if (planta === 0) return 'Bajo'
+  if (planta === ATICO) return 'Ático'
+  return `${planta}º`
 }
 
 export function plantaLarga(planta: number): string {
-  return planta === 0 ? 'Planta baja' : `Planta ${planta}`
+  if (planta === 0) return 'Planta baja'
+  if (planta === ATICO) return 'Ático'
+  return `Planta ${planta}`
 }
 
-/** "2ºB" o "Bajo A" */
+/** "2ºB", "Bajo A" o "Ático A" */
 export function viviendaNombre(planta: number, letra: string): string {
-  return planta === 0 ? `Bajo ${letra}` : `${planta}º${letra}`
+  return planta === 0 || planta === ATICO ? `${plantaTexto(planta)} ${letra}` : `${planta}º${letra}`
 }
 
 /** "Bloque A · 2ºB" */

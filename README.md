@@ -9,12 +9,13 @@ Es una aplicación web instalable (PWA): funciona en cualquier móvil desde el n
 ## Qué incluye
 
 - Inicio de sesión con correo y contraseña (crear cuenta, recuperar contraseña).
-- Varias obras por cuenta. Cada obra tiene **bloques**, y cada bloque **plantas** y **letras** (2ºB, Bajo A…). Las viviendas se generan solas.
+- Varias obras por cuenta. Cada obra tiene **bloques**, y cada planta de cada bloque sus propias **letras** (2ºB, Bajo A, Ático A…), con distinto número de viviendas por planta y ático opcional. Las viviendas se generan solas.
 - Revisión de cada vivienda: estado (pendiente, en curso, revisada) y fallos por estancia.
-- Fallos con fotos (cámara o galería, se reducen solas), estancia, tipo, prioridad, subcontrata y descripción.
+- Fallos con fotos (botones **Cámara** y **Galería**, se reducen solas), estancia, tipo, prioridad, subcontrata y descripción.
 - Pestaña **Fallos** con todos los fallos de la obra, búsqueda y filtros.
 - **Exportar a PDF y Excel** desde cada vivienda y desde la lista global (lo filtrado). En móvil se puede compartir directamente.
 - **Equipo**: invitar por correo y registro de actividad (quién cambió qué y cuándo).
+- **Copia de seguridad** por obra (en Equipo): zip con Excel, archivo de datos JSON y, si quieres, las fotos.
 - Jefe de obra y encargados tienen **los mismos permisos** dentro de una obra.
 
 ## Tecnología
@@ -64,6 +65,16 @@ Abre la dirección que indica (normalmente http://localhost:5173) y crea tu cuen
 
 Abre la dirección publicada en el móvil y usa **Añadir a pantalla de inicio** (Chrome: menú ⋮ → *Instalar aplicación*; Safari: Compartir → *Añadir a pantalla de inicio*). Cada persona entra con su cuenta.
 
+## Actualizar sin perder datos
+
+- Los datos viven en Supabase, no en la app: subir código nuevo a GitHub **no toca la base de datos**.
+- Cuando una versión cambie la base de datos, vendrá un script en `supabase/migraciones/` (`001_…`, `002_…`). Se pega en **SQL Editor → Run** una sola vez, en orden. Son scripts que no borran datos. **No vuelvas a ejecutar `schema.sql` para actualizar.**
+- `schema.sql` solo sirve para crear una base de datos nueva desde cero.
+
+## Generar el APK de Android
+
+En la pestaña **Actions** del repositorio, elige **Generar APK → Run workflow**. Al terminar, descarga `repaso-obra-apk` desde *Artifacts*. El APK es de pruebas ("debug"): Android no deja instalarlo encima de otro firmado con otra clave, así que al actualizar hay que desinstalar el anterior (los datos en la nube no se pierden).
+
 ## Seguridad
 
 - La clave `anon` es pública por diseño: va dentro de la app. La protección está en el **Row Level Security** de `schema.sql`: cada persona solo ve las obras a las que pertenece.
@@ -73,11 +84,12 @@ Abre la dirección publicada en el móvil y usa **Añadir a pantalla de inicio**
 ## Estructura
 
 ```
-supabase/schema.sql      tablas, permisos, funciones y almacenamiento de fotos
-src/lib/                 acceso a datos (api.ts), exportación (export.ts), sesión, fotos
+supabase/schema.sql      base de datos completa (para crear una nueva desde cero)
+supabase/migraciones/    cambios que no borran datos, para bases de datos ya en uso
+src/lib/                 acceso a datos (api.ts), exportación (export.ts), copia de seguridad (copia.ts), sesión, fotos
 src/pages/               pantallas: Login, Obras, NuevaObra, Viviendas, Vivienda, FalloForm, Fallos, Equipo
 src/components/          cabecera y navegación, ventana de exportar
-.github/workflows/       publicación automática en GitHub Pages
+.github/workflows/       publicación automática en GitHub Pages (deploy.yml) y generación del APK (apk.yml)
 ```
 
 ## Limitaciones de esta versión
@@ -85,6 +97,7 @@ src/components/          cabecera y navegación, ventana de exportar
 - Necesita conexión: no hay modo sin conexión todavía.
 - No se pueden dibujar círculos o flechas sobre las fotos.
 - Las estancias de cada vivienda son texto libre (con sugerencias), no una lista fija por vivienda.
+- No se pueden editar las plantas o letras de un bloque ya creado (hay que crear la obra de nuevo).
 - Las subcontratas son texto libre con sugerencias de las ya usadas en la obra.
 - Si la obra tiene miles de fallos, la lista global puede tardar en cargar.
 

@@ -88,8 +88,13 @@ export interface Actividad {
   profiles: Persona | null
 }
 
+/** Una planta del bloque con sus letras de vivienda (0 = bajo, 100 = ático) */
+export interface PlantaNueva {
+  planta: number
+  letras: string[]
+}
+
 export interface BloqueNuevo {
   nombre: string
-  plantas: number
-  letras: string[]
+  plantas: PlantaNueva[]
 }

@@ -138,11 +138,20 @@ export default function FalloForm() {
                 <path d="M4 8h3l2-3h6l2 3h3v11H4z" />
                 <circle cx="12" cy="13" r="3.5" />
               </svg>
-              Añadir
+              Cámara
+              <input type="file" accept="image/*" capture="environment" onChange={añadirFotos} />
+            </label>
+            <label className="foto-nueva">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#1B1F24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <rect x="3" y="4" width="18" height="16" rx="2" />
+                <circle cx="9" cy="10" r="1.8" />
+                <path d="M21 16l-5-5-8 9" />
+              </svg>
+              Galería
               <input type="file" accept="image/*" multiple onChange={añadirFotos} />
             </label>
           </div>
-          <span className="muted">Se hace la foto con la cámara o se elige de la galería. Se reducen solas para ahorrar datos.</span>
+          <span className="muted">Haz una foto con la cámara o elige varias de la galería. Se reducen solas para ahorrar datos.</span>
         </div>
 
         <div className="campo">

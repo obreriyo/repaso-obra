@@ -95,6 +95,20 @@ export async function listViviendas(bloqueId: string): Promise<Vivienda[]> {
   return ok(r) as unknown as Vivienda[]
 }
 
+/** Todas las viviendas de la obra (para la copia de seguridad). */
+export async function listViviendasObra(obraId: string): Promise<Vivienda[]> {
+  return leerTodo<Vivienda>((d, h) =>
+    supabase
+      .from('viviendas_resumen')
+      .select('*')
+      .eq('obra_id', obraId)
+      .order('bloque_nombre')
+      .order('planta')
+      .order('letra')
+      .range(d, h) as unknown as PromiseLike<Respuesta<Vivienda[]>>
+  )
+}
+
 export async function getVivienda(id: string): Promise<Vivienda> {
   const r = await supabase.from('viviendas_resumen').select('*').eq('id', id).single()
   return ok(r) as unknown as Vivienda

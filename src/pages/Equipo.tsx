@@ -4,6 +4,8 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { Estado, Pantalla } from '../components/Pantalla'
 import * as api from '../lib/api'
 import { useAuth } from '../lib/auth'
+import { copiaDeSeguridad } from '../lib/copia'
+import { entregar, puedeCompartir } from '../lib/export'
 import { useCarga } from '../lib/hooks'
 import { fecha, mensajeError, nombrePersona } from '../lib/format'
 
@@ -29,6 +31,29 @@ export default function Equipo() {
   const [mensaje, setMensaje] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [ocupado, setOcupado] = useState(false)
+  const [copiaFotos, setCopiaFotos] = useState(false)
+  const [copiaOcupada, setCopiaOcupada] = useState(false)
+  const [copiaTexto, setCopiaTexto] = useState<string | null>(null)
+  const [copiaError, setCopiaError] = useState<string | null>(null)
+
+  async function hacerCopia(compartir: boolean) {
+    if (!obra.datos) return
+    setCopiaError(null)
+    setCopiaOcupada(true)
+    try {
+      const resultado = await copiaDeSeguridad(obra.datos, { incluirFotos: copiaFotos, progreso: setCopiaTexto })
+      await entregar(resultado, compartir)
+      setCopiaTexto('Copia lista.')
+    } catch (err) {
+      // Si la persona cierra la hoja de compartir no es un error
+      if (!(err instanceof DOMException && err.name === 'AbortError')) {
+        setCopiaError(mensajeError(err))
+        setCopiaTexto(null)
+      }
+    } finally {
+      setCopiaOcupada(false)
+    }
+  }
 
   async function invitar(e: FormEvent) {
     e.preventDefault()
@@ -153,6 +178,31 @@ export default function Equipo() {
             <small>{fecha(a.created_at)}</small>
           </div>
         ))}
+      </div>
+
+      <h2 className="seccion">Copia de seguridad</h2>
+      <div className="tarjeta">
+        <p className="muted">
+          Descarga todos los datos de esta obra (viviendas, fallos, equipo y actividad) en un zip con un Excel y un archivo de datos.
+        </p>
+        <div className="panel">
+          <label className="interruptor">
+            Incluir las fotos (pesa más)
+            <input type="checkbox" checked={copiaFotos} onChange={(e) => setCopiaFotos(e.target.checked)} />
+          </label>
+        </div>
+        {copiaError && <p className="error">{copiaError}</p>}
+        {copiaTexto && <p className="muted">{copiaTexto}</p>}
+        <div className="acciones">
+          {puedeCompartir() && (
+            <button className="btn" disabled={copiaOcupada || !obra.datos} onClick={() => void hacerCopia(true)}>
+              Compartir
+            </button>
+          )}
+          <button className="btn btn-primario" disabled={copiaOcupada || !obra.datos} onClick={() => void hacerCopia(false)}>
+            {copiaOcupada ? 'Preparando…' : 'Descargar copia'}
+          </button>
+        </div>
       </div>
 
       <button className="btn btn-peligro" onClick={() => void eliminarObra()}>
