@@ -1,0 +1,31 @@
+name: Aplicar actualización
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  aplicar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Descomprimir y copiar
+        run: |
+          unzip -q -o repaso-obra-v2.zip -d /tmp/v2
+          rm -rf /tmp/v2/repaso-obra/.github
+          cp -r /tmp/v2/repaso-obra/. .
+          rm -f repaso-obra-v2.zip
+      - name: Guardar cambios
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git add -A
+          git commit -m "Versión 2"
+          git push
+      - name: Publicar la web
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run deploy.yml
