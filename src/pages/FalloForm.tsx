@@ -5,6 +5,7 @@ import { Estado, Pantalla } from '../components/Pantalla'
 import * as api from '../lib/api'
 import { useCarga, useUrlsFotos } from '../lib/hooks'
 import { ESTANCIAS, PRIORIDAD_TEXTO, TIPOS, mensajeError } from '../lib/format'
+import { esNativa } from '../lib/nativo'
 import type { EstadoFallo, Foto, Prioridad } from '../lib/types'
 
 interface FotoNueva {
@@ -54,6 +55,31 @@ export default function FalloForm() {
     const archivos = Array.from(e.target.files ?? [])
     setNuevas((lista) => [...lista, ...archivos.map((archivo) => ({ archivo, vista: URL.createObjectURL(archivo) }))])
     e.target.value = ''
+  }
+
+  /** En el APK: abre la cámara de Android de verdad (el selector de archivos solo ofrece la galería). */
+  async function hacerFoto() {
+    setError(null)
+    try {
+      const { Camera, CameraResultType, CameraSource } = await import('@capacitor/camera')
+      const foto = await Camera.getPhoto({
+        quality: 90,
+        allowEditing: false,
+        correctOrientation: true,
+        resultType: CameraResultType.Uri,
+        source: CameraSource.Camera
+      })
+      if (!foto.webPath) return
+      const respuesta = await fetch(foto.webPath)
+      const blob = await respuesta.blob()
+      const archivo = new File([blob], `foto_${Date.now()}.jpg`, { type: blob.type || 'image/jpeg' })
+      setNuevas((lista) => [...lista, { archivo, vista: URL.createObjectURL(archivo) }])
+    } catch (e) {
+      // Cerrar la cámara sin hacer la foto no es un error
+      const texto = e instanceof Error ? e.message : String(e)
+      if (/cancel/i.test(texto)) return
+      setError(`No se pudo abrir la cámara: ${texto}`)
+    }
   }
 
   function quitarNueva(i: number) {
@@ -133,14 +159,24 @@ export default function FalloForm() {
                 </button>
               </div>
             ))}
-            <label className="foto-nueva">
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#1B1F24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            {esNativa() ? (
+              <button type="button" className="foto-nueva" onClick={() => void hacerFoto()}>
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#1B1F24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M4 8h3l2-3h6l2 3h3v11H4z" />
                 <circle cx="12" cy="13" r="3.5" />
               </svg>
-              Cámara
-              <input type="file" accept="image/*" capture="environment" onChange={añadirFotos} />
-            </label>
+                Cámara
+              </button>
+            ) : (
+              <label className="foto-nueva">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#1B1F24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M4 8h3l2-3h6l2 3h3v11H4z" />
+                  <circle cx="12" cy="13" r="3.5" />
+                </svg>
+                Cámara
+                <input type="file" accept="image/*" capture="environment" onChange={añadirFotos} />
+              </label>
+            )}
             <label className="foto-nueva">
               <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#1B1F24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <rect x="3" y="4" width="18" height="16" rx="2" />
