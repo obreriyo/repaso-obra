@@ -6,6 +6,7 @@ import * as api from '../lib/api'
 import { useAuth } from '../lib/auth'
 import { copiaDeSeguridad } from '../lib/copia'
 import { entregar, puedeCompartir } from '../lib/export'
+import { esNativa } from '../lib/nativo'
 import { useCarga } from '../lib/hooks'
 import { fecha, mensajeError, nombrePersona } from '../lib/format'
 
@@ -99,6 +100,7 @@ export default function Equipo() {
   async function eliminarObra() {
     const nombre = obra.datos?.nombre ?? 'esta obra'
     if (!window.confirm(`¿Eliminar «${nombre}» con todas sus viviendas, fallos y fotos? No se puede deshacer.`)) return
+    if (!window.confirm(`Última confirmación: se borrará «${nombre}» para siempre, para todo el equipo. ¿Seguro?`)) return
     try {
       await api.borrarObra(obraId)
       nav('/', { replace: true })
@@ -194,13 +196,13 @@ export default function Equipo() {
         {copiaError && <p className="error">{copiaError}</p>}
         {copiaTexto && <p className="muted">{copiaTexto}</p>}
         <div className="acciones">
-          {puedeCompartir() && (
+          {puedeCompartir() && !esNativa() && (
             <button className="btn" disabled={copiaOcupada || !obra.datos} onClick={() => void hacerCopia(true)}>
               Compartir
             </button>
           )}
           <button className="btn btn-primario" disabled={copiaOcupada || !obra.datos} onClick={() => void hacerCopia(false)}>
-            {copiaOcupada ? 'Preparando…' : 'Descargar copia'}
+            {copiaOcupada ? 'Preparando…' : esNativa() ? 'Compartir o guardar copia' : 'Descargar copia'}
           </button>
         </div>
       </div>

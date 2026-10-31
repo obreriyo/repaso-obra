@@ -85,6 +85,31 @@ export async function listBloques(obraId: string): Promise<Bloque[]> {
   return ok(r) as unknown as Bloque[]
 }
 
+/** Borra un bloque con sus viviendas, fallos y fotos (también las del almacenamiento). */
+export async function borrarBloque(bloqueId: string): Promise<void> {
+  const viviendas = await leerTodo<{ id: string }>((d, h) =>
+    supabase.from('viviendas').select('id').eq('bloque_id', bloqueId).range(d, h)
+  )
+  const ids = viviendas.map((v) => v.id)
+  for (let i = 0; i < ids.length; i += 50) {
+    const lote = ids.slice(i, i + 50)
+    const fallos = await leerTodo<{ id: string }>((d, h) =>
+      supabase.from('fallos').select('id').in('vivienda_id', lote).range(d, h)
+    )
+    const falloIds = fallos.map((f) => f.id)
+    for (let j = 0; j < falloIds.length; j += 100) {
+      const grupo = falloIds.slice(j, j + 100)
+      const fotos = await leerTodo<{ path: string }>((d, h) =>
+        supabase.from('fotos').select('path').in('fallo_id', grupo).range(d, h)
+      )
+      for (let k = 0; k < fotos.length; k += 100) {
+        await supabase.storage.from('fotos').remove(fotos.slice(k, k + 100).map((f) => f.path))
+      }
+    }
+  }
+  ok(await supabase.from('bloques').delete().eq('id', bloqueId))
+}
+
 export async function listViviendas(bloqueId: string): Promise<Vivienda[]> {
   const r = await supabase
     .from('viviendas_resumen')

@@ -1,5 +1,8 @@
+import { useEffect, useRef } from 'react'
 import type { ReactNode } from 'react'
-import { Navigate, Route, Routes } from 'react-router-dom'
+import { App as CapApp } from '@capacitor/app'
+import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
+import { esNativa } from './lib/nativo'
 import { useAuth } from './lib/auth'
 import Login from './pages/Login'
 import NuevaClave from './pages/NuevaClave'
@@ -26,12 +29,52 @@ function Privada({ children }: { children: ReactNode }) {
   return <>{children}</>
 }
 
+/**
+ * Botón "atrás" de Android: vuelve a la pantalla anterior y, estando en el inicio,
+ * pregunta si se quiere salir de la app (en vez de cerrarla de golpe).
+ */
+function BotonAtras() {
+  const nav = useNavigate()
+  const { pathname } = useLocation()
+  const ruta = useRef(pathname)
+  ruta.current = pathname
+
+  useEffect(() => {
+    if (!esNativa()) return
+    let cancelado = false
+    let quitar: (() => void) | null = null
+
+    CapApp.addListener('backButton', () => {
+      const actual = ruta.current
+      if (actual === '/' || actual === '/login') {
+        if (window.confirm('¿Quieres salir de la app?')) void CapApp.exitApp()
+        return
+      }
+      const posicion = (window.history.state as { idx?: number } | null)?.idx ?? 0
+      if (posicion > 0) nav(-1)
+      else nav('/', { replace: true })
+    }).then((escucha) => {
+      if (cancelado) void escucha.remove()
+      else quitar = () => void escucha.remove()
+    })
+
+    return () => {
+      cancelado = true
+      if (quitar) quitar()
+    }
+  }, [nav])
+
+  return null
+}
+
 export default function App() {
   const { recuperando } = useAuth()
 
   if (recuperando) return <NuevaClave />
 
   return (
+    <>
+    <BotonAtras />
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/" element={<Privada><Obras /></Privada>} />
@@ -44,5 +87,6 @@ export default function App() {
       <Route path="/obra/:obraId/equipo" element={<Privada><Equipo /></Privada>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </>
   )
 }

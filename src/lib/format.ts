@@ -13,15 +13,16 @@ export const TIPOS = [
 
 export const ESTANCIAS = [
   'Cocina',
-  'Baño principal',
-  'Baño 2',
   'Salón',
   'Dormitorio 1',
   'Dormitorio 2',
   'Dormitorio 3',
+  'Baño principal',
+  'Baño 2',
   'Pasillo',
   'Entrada',
   'Terraza',
+  'Patio',
   'Trastero',
   'Garaje'
 ]

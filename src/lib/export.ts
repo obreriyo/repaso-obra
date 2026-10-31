@@ -1,5 +1,6 @@
 import { urlsFotos } from './api'
 import { fecha, fechaLarga, paraArchivo, plantaTexto, ubicacion, PRIORIDAD_TEXTO } from './format'
+import { esNativa } from './nativo'
 import type { Fallo } from './types'
 
 export type Formato = 'pdf' | 'xlsx'
@@ -279,8 +280,43 @@ export async function generar(fallos: Fallo[], op: OpcionesExportar): Promise<Re
   return { blob, nombre }
 }
 
+function aBase64(blob: Blob): Promise<string> {
+  return new Promise((resolver, rechazar) => {
+    const lector = new FileReader()
+    lector.onload = () => resolver(String(lector.result).split(',')[1] ?? '')
+    lector.onerror = () => rechazar(new Error('No se pudo preparar el archivo'))
+    lector.readAsDataURL(blob)
+  })
+}
+
+/**
+ * En el APK de Android las descargas normales del navegador no funcionan:
+ * se guarda el archivo en la caché de la app y se abre la hoja de compartir de Android,
+ * desde donde se puede enviar por WhatsApp o correo, o guardarlo en el móvil.
+ */
+async function compartirNativo(resultado: Resultado): Promise<void> {
+  const [{ Filesystem, Directory }, { Share }] = await Promise.all([
+    import('@capacitor/filesystem'),
+    import('@capacitor/share')
+  ])
+  const data = await aBase64(resultado.blob)
+  const guardado = await Filesystem.writeFile({ path: resultado.nombre, data, directory: Directory.Cache })
+  try {
+    await Share.share({ title: resultado.nombre, url: guardado.uri, dialogTitle: 'Compartir o guardar' })
+  } catch (e) {
+    // Cerrar la hoja de compartir sin elegir nada no es un error
+    if (e instanceof Error && /cancel/i.test(e.message)) return
+    throw e
+  }
+}
+
 /** Comparte el archivo (hoja de compartir del móvil) o, si no se puede, lo descarga. */
 export async function entregar(resultado: Resultado, compartir: boolean): Promise<void> {
+  if (esNativa()) {
+    await compartirNativo(resultado)
+    return
+  }
+
   const archivo = new File([resultado.blob], resultado.nombre, { type: resultado.blob.type })
 
   if (compartir && typeof navigator.canShare === 'function' && navigator.canShare({ files: [archivo] })) {
@@ -299,6 +335,7 @@ export async function entregar(resultado: Resultado, compartir: boolean): Promis
 
 /** ¿Este navegador puede compartir archivos? (móviles sí, la mayoría de ordenadores no) */
 export function puedeCompartir(): boolean {
+  if (esNativa()) return true
   if (typeof navigator.canShare !== 'function') return false
   try {
     return navigator.canShare({ files: [new File(['x'], 'x.pdf', { type: 'application/pdf' })] })

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { entregar, generar, puedeCompartir } from '../lib/export'
 import type { Formato } from '../lib/export'
 import { mensajeError, ubicacion } from '../lib/format'
+import { esNativa } from '../lib/nativo'
 import type { Fallo } from '../lib/types'
 
 interface Props {
@@ -33,7 +34,8 @@ export default function ExportDialog({
   const [error, setError] = useState<string | null>(null)
 
   const lista = soloAbiertos ? fallos.filter((f) => f.estado === 'abierto') : fallos
-  const compartible = puedeCompartir()
+  const nativa = esNativa()
+  const compartible = puedeCompartir() && !nativa
 
   async function ejecutar(compartir: boolean) {
     setOcupado(true)
@@ -115,7 +117,7 @@ export default function ExportDialog({
             </button>
           )}
           <button type="button" className="btn btn-primario" disabled={ocupado || lista.length === 0} onClick={() => ejecutar(false)}>
-            {ocupado ? 'Preparando…' : `Descargar ${formato === 'pdf' ? 'PDF' : 'Excel'}`}
+            {ocupado ? 'Preparando…' : nativa ? `Compartir o guardar ${formato === 'pdf' ? 'PDF' : 'Excel'}` : `Descargar ${formato === 'pdf' ? 'PDF' : 'Excel'}`}
           </button>
         </div>
         <button type="button" className="btn-texto" onClick={onClose}>

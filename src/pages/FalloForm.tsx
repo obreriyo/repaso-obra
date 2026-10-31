@@ -157,7 +157,7 @@ export default function FalloForm() {
         <div className="campo">
           <label htmlFor="estancia">Estancia</label>
           <div className="chips">
-            {ESTANCIAS.slice(0, 8).map((e) => (
+            {ESTANCIAS.map((e) => (
               <button key={e} type="button" className={`chip ${estancia === e ? 'act' : ''}`} onClick={() => setEstancia(e)}>
                 {e}
               </button>

@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import { Estado, Pantalla } from '../components/Pantalla'
 import * as api from '../lib/api'
 import { useCarga } from '../lib/hooks'
-import { ESTADO_VIVIENDA_TEXTO, plantaLarga, viviendaNombre } from '../lib/format'
+import { ESTADO_VIVIENDA_TEXTO, mensajeError, plantaLarga, viviendaNombre } from '../lib/format'
 import type { EstadoVivienda, Vivienda } from '../lib/types'
 
 type Filtro = 'todas' | 'fallos' | 'sin'
@@ -20,6 +20,8 @@ export default function Viviendas() {
   const bloques = useCarga(() => api.listBloques(obraId), [obraId])
   const [elegido, setElegido] = useState<string | null>(null)
   const [filtro, setFiltro] = useState<Filtro>('todas')
+  const [errorBorrar, setErrorBorrar] = useState<string | null>(null)
+  const [borrando, setBorrando] = useState(false)
 
   const lista = bloques.datos ?? []
   const bloqueId = elegido && lista.some((b) => b.id === elegido) ? elegido : (lista[0]?.id ?? null)
@@ -42,6 +44,29 @@ export default function Viviendas() {
   const pendientes = todas.filter((v) => v.estado === 'pendiente').length
   const pct = todas.length > 0 ? Math.round((revisadas / todas.length) * 100) : 0
   const nombreBloque = lista.find((b) => b.id === bloqueId)?.nombre ?? ''
+
+  async function eliminarBloque() {
+    if (!bloqueId) return
+    const nombre = nombreBloque || 'este bloque'
+    const fallosTotal = abiertos + reparados
+    const primera = window.confirm(
+      `¿Eliminar «${nombre}» con sus ${todas.length} viviendas, ${fallosTotal} fallos y todas sus fotos? No se puede deshacer.`
+    )
+    if (!primera) return
+    if (!window.confirm(`Última confirmación: se borrará «${nombre}» para siempre. ¿Seguro?`)) return
+    setErrorBorrar(null)
+    setBorrando(true)
+    try {
+      await api.borrarBloque(bloqueId)
+      setElegido(null)
+      bloques.recargar()
+      obra.recargar()
+    } catch (e) {
+      setErrorBorrar(mensajeError(e))
+    } finally {
+      setBorrando(false)
+    }
+  }
 
   // Agrupa por planta (de la más alta a la planta baja)
   const plantas = Array.from(new Set(visibles.map((v) => v.planta))).sort((a, b) => b - a)
@@ -133,6 +158,13 @@ export default function Viviendas() {
       ))}
 
       {!viviendas.cargando && visibles.length === 0 && <p className="muted">No hay viviendas con este filtro.</p>}
+
+      {errorBorrar && <p className="error">{errorBorrar}</p>}
+      {bloqueId && (
+        <button type="button" className="btn btn-peligro" disabled={borrando} onClick={() => void eliminarBloque()}>
+          {borrando ? 'Eliminando…' : `Eliminar ${nombreBloque || 'este bloque'}`}
+        </button>
+      )}
     </Pantalla>
   )
 }
