@@ -1,4 +1,5 @@
 import { urlsFotos } from './api'
+import { supabase } from './supabase'
 import { fecha, fechaLarga, paraArchivo, plantaTexto, ubicacion, PRIORIDAD_TEXTO } from './format'
 import { esNativa } from './nativo'
 import type { Fallo } from './types'
@@ -310,10 +311,49 @@ async function compartirNativo(resultado: Resultado): Promise<void> {
   }
 }
 
-/** Comparte el archivo (hoja de compartir del móvil) o, si no se puede, lo descarga. */
-export async function entregar(resultado: Resultado, compartir: boolean): Promise<void> {
+/** Borra de la nube las exportaciones temporales de más de una hora (no importa si falla). */
+async function limpiarExportaciones(obraId: string): Promise<void> {
+  try {
+    const carpeta = `${obraId}/exportaciones`
+    const { data } = await supabase.storage.from('fotos').list(carpeta, { limit: 100 })
+    const viejas = (data ?? [])
+      .filter((f) => f.created_at && Date.now() - new Date(f.created_at).getTime() > 60 * 60 * 1000)
+      .map((f) => `${carpeta}/${f.name}`)
+    if (viejas.length > 0) await supabase.storage.from('fotos').remove(viejas)
+  } catch {
+    /* no pasa nada */
+  }
+}
+
+/**
+ * Descarga real en el APK: sube el archivo un momento a la nube privada y abre su enlace
+ * (válido 10 minutos) en el navegador del móvil, que lo guarda en Descargas.
+ */
+async function descargarNativo(resultado: Resultado, obraId: string): Promise<void> {
+  const ruta = `${obraId}/exportaciones/${Date.now()}_${resultado.nombre}`
+  const subida = await supabase.storage.from('fotos').upload(ruta, resultado.blob, {
+    contentType: resultado.blob.type || 'application/octet-stream'
+  })
+  if (subida.error) throw new Error(subida.error.message)
+
+  const firmada = await supabase.storage.from('fotos').createSignedUrl(ruta, 600, { download: resultado.nombre })
+  if (firmada.error || !firmada.data) throw new Error(firmada.error?.message ?? 'No se pudo preparar la descarga')
+
+  const { Browser } = await import('@capacitor/browser')
+  await Browser.open({ url: firmada.data.signedUrl })
+
+  setTimeout(() => void supabase.storage.from('fotos').remove([ruta]), 15 * 60 * 1000)
+  void limpiarExportaciones(obraId)
+}
+
+/**
+ * Entrega el archivo. En el navegador: hoja de compartir o descarga normal.
+ * En el APK: "compartir" abre la hoja de compartir de Android y "descargar" lo guarda en Descargas.
+ */
+export async function entregar(resultado: Resultado, compartir: boolean, obraId?: string): Promise<void> {
   if (esNativa()) {
-    await compartirNativo(resultado)
+    if (compartir || !obraId) await compartirNativo(resultado)
+    else await descargarNativo(resultado, obraId)
     return
   }
 

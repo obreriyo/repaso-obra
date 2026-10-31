@@ -15,7 +15,7 @@ Es una aplicación web instalable (PWA): funciona en cualquier móvil desde el n
 - Pestaña **Fallos** con todos los fallos de la obra, búsqueda y filtros.
 - **Exportar a PDF y Excel** desde cada vivienda y desde la lista global (lo filtrado). En móvil se puede compartir directamente.
 - **Equipo**: invitar por correo y registro de actividad (quién cambió qué y cuándo).
-- Se pueden eliminar **bloques** (desde Viviendas) y **obras** (desde Mis obras o Equipo), siempre con doble confirmación.
+- Se pueden **añadir bloques** a una obra ya creada (botón en Viviendas) y eliminar **bloques** (desde Viviendas) y **obras** (desde Mis obras o Equipo), siempre con doble confirmación.
 - En el APK de Android, el botón *atrás* vuelve a la pantalla anterior y, en el inicio, pregunta si quieres salir; PDF, Excel y la copia de seguridad se abren con la hoja de compartir de Android.
 - **Copia de seguridad** por obra (en Equipo): zip con Excel, archivo de datos JSON y, si quieres, las fotos.
 - Jefe de obra y encargados tienen **los mismos permisos** dentro de una obra.
@@ -99,7 +99,7 @@ src/components/          cabecera y navegación, ventana de exportar
 - Necesita conexión: no hay modo sin conexión todavía.
 - No se pueden dibujar círculos o flechas sobre las fotos.
 - Las estancias de cada vivienda son texto libre (con sugerencias), no una lista fija por vivienda.
-- No se pueden editar las plantas o letras de un bloque ya creado (hay que crear la obra de nuevo).
+- No se pueden editar las plantas o letras de un bloque ya creado (se puede añadir un bloque nuevo o eliminar el bloque y crearlo otra vez).
 - Las subcontratas son texto libre con sugerencias de las ya usadas en la obra.
 - Si la obra tiene miles de fallos, la lista global puede tardar en cargar.
 

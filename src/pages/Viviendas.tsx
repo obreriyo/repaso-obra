@@ -159,6 +159,10 @@ export default function Viviendas() {
 
       {!viviendas.cargando && visibles.length === 0 && <p className="muted">No hay viviendas con este filtro.</p>}
 
+      <Link className="btn" to={`/obra/${obraId}/nuevo-bloque`}>
+        + Añadir bloque
+      </Link>
+
       {errorBorrar && <p className="error">{errorBorrar}</p>}
       {bloqueId && (
         <button type="button" className="btn btn-peligro" disabled={borrando} onClick={() => void eliminarBloque()}>

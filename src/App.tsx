@@ -8,6 +8,7 @@ import Login from './pages/Login'
 import NuevaClave from './pages/NuevaClave'
 import Obras from './pages/Obras'
 import NuevaObra from './pages/NuevaObra'
+import NuevoBloque from './pages/NuevoBloque'
 import Viviendas from './pages/Viviendas'
 import Vivienda from './pages/Vivienda'
 import FalloForm from './pages/FalloForm'
@@ -80,6 +81,7 @@ export default function App() {
       <Route path="/" element={<Privada><Obras /></Privada>} />
       <Route path="/nueva-obra" element={<Privada><NuevaObra /></Privada>} />
       <Route path="/obra/:obraId" element={<Privada><Viviendas /></Privada>} />
+      <Route path="/obra/:obraId/nuevo-bloque" element={<Privada><NuevoBloque /></Privada>} />
       <Route path="/obra/:obraId/vivienda/:viviendaId" element={<Privada><Vivienda /></Privada>} />
       <Route path="/obra/:obraId/vivienda/:viviendaId/fallo/nuevo" element={<Privada><FalloForm /></Privada>} />
       <Route path="/obra/:obraId/fallo/:falloId" element={<Privada><FalloForm /></Privada>} />

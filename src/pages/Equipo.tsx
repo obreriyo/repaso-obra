@@ -6,7 +6,6 @@ import * as api from '../lib/api'
 import { useAuth } from '../lib/auth'
 import { copiaDeSeguridad } from '../lib/copia'
 import { entregar, puedeCompartir } from '../lib/export'
-import { esNativa } from '../lib/nativo'
 import { useCarga } from '../lib/hooks'
 import { fecha, mensajeError, nombrePersona } from '../lib/format'
 
@@ -43,7 +42,7 @@ export default function Equipo() {
     setCopiaOcupada(true)
     try {
       const resultado = await copiaDeSeguridad(obra.datos, { incluirFotos: copiaFotos, progreso: setCopiaTexto })
-      await entregar(resultado, compartir)
+      await entregar(resultado, compartir, obra.datos.id)
       setCopiaTexto('Copia lista.')
     } catch (err) {
       // Si la persona cierra la hoja de compartir no es un error
@@ -196,13 +195,13 @@ export default function Equipo() {
         {copiaError && <p className="error">{copiaError}</p>}
         {copiaTexto && <p className="muted">{copiaTexto}</p>}
         <div className="acciones">
-          {puedeCompartir() && !esNativa() && (
+          {puedeCompartir() && (
             <button className="btn" disabled={copiaOcupada || !obra.datos} onClick={() => void hacerCopia(true)}>
               Compartir
             </button>
           )}
           <button className="btn btn-primario" disabled={copiaOcupada || !obra.datos} onClick={() => void hacerCopia(false)}>
-            {copiaOcupada ? 'Preparando…' : esNativa() ? 'Compartir o guardar copia' : 'Descargar copia'}
+            {copiaOcupada ? 'Preparando…' : 'Descargar copia'}
           </button>
         </div>
       </div>

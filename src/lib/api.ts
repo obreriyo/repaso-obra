@@ -12,6 +12,7 @@ import type {
   Miembro,
   NuevoFallo,
   Obra,
+  PlantaNueva,
   Vivienda
 } from './types'
 
@@ -83,6 +84,12 @@ export async function borrarObra(id: string): Promise<void> {
 export async function listBloques(obraId: string): Promise<Bloque[]> {
   const r = await supabase.from('bloques').select('*').eq('obra_id', obraId).order('nombre')
   return ok(r) as unknown as Bloque[]
+}
+
+/** Añade un bloque (con sus viviendas) a una obra que ya existe. */
+export async function crearBloque(obraId: string, nombre: string, plantas: PlantaNueva[]): Promise<string> {
+  const r = await supabase.rpc('crear_bloque', { p_obra: obraId, p_nombre: nombre, p_plantas: plantas })
+  return ok(r) as unknown as string
 }
 
 /** Borra un bloque con sus viviendas, fallos y fotos (también las del almacenamiento). */
