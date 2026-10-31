@@ -23,6 +23,11 @@ jobs:
       - run: npm install --no-save @capacitor/core@6 @capacitor/cli@6 @capacitor/android@6
       - run: npx cap init "Repaso de obra" com.obreriyo.repasoobra --web-dir=dist
       - run: npx cap add android
+      - name: Permiso de cámara (para el botón Cámara)
+        run: |
+          F=android/app/src/main/AndroidManifest.xml
+          sed -i 's#</manifest>#    <uses-permission android:name="android.permission.CAMERA" />\n    <uses-feature android:name="android.hardware.camera" android:required="false" />\n</manifest>#' "$F"
+          grep -n "CAMERA" "$F"
       - run: npx cap sync android
       - run: ./gradlew assembleDebug
         working-directory: android
