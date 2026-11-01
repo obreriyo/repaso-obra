@@ -71,6 +71,12 @@ export interface NuevoFallo {
   subcontrata: string | null
 }
 
+export interface Subcontrata {
+  id: string
+  obra_id: string
+  nombre: string
+}
+
 export interface Miembro {
   user_id: string
   profiles: Persona | null

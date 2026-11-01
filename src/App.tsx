@@ -14,6 +14,7 @@ import Vivienda from './pages/Vivienda'
 import FalloForm from './pages/FalloForm'
 import Fallos from './pages/Fallos'
 import Equipo from './pages/Equipo'
+import EstadoSync from './components/EstadoSync'
 
 function Privada({ children }: { children: ReactNode }) {
   const { usuario, cargando } = useAuth()
@@ -76,6 +77,7 @@ export default function App() {
   return (
     <>
     <BotonAtras />
+    <EstadoSync />
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/" element={<Privada><Obras /></Privada>} />

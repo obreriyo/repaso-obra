@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Estado, Pantalla } from '../components/Pantalla'
 import * as api from '../lib/api'
@@ -22,6 +22,13 @@ export default function Viviendas() {
   const [filtro, setFiltro] = useState<Filtro>('todas')
   const [errorBorrar, setErrorBorrar] = useState<string | null>(null)
   const [borrando, setBorrando] = useState(false)
+
+  // Con internet, deja guardados en el móvil los datos de la obra para poder usarlos sin conexión
+  useEffect(() => {
+    void api.descargarObra(obraId, true).catch(() => {
+      /* sin conexión: se usa lo que ya hay en el móvil */
+    })
+  }, [obraId])
 
   const lista = bloques.datos ?? []
   const bloqueId = elegido && lista.some((b) => b.id === elegido) ? elegido : (lista[0]?.id ?? null)

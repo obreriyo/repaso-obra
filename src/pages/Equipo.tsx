@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Estado, Pantalla } from '../components/Pantalla'
@@ -26,6 +26,54 @@ export default function Equipo() {
   const miembros = useCarga(() => api.listMiembros(obraId), [obraId])
   const invitaciones = useCarga(() => api.listInvitaciones(obraId), [obraId])
   const actividad = useCarga(() => api.listActividad(obraId), [obraId])
+
+  const subs = useCarga(() => api.listSubcontratas(obraId), [obraId])
+  const [nuevaSub, setNuevaSub] = useState('')
+  const [errorSub, setErrorSub] = useState<string | null>(null)
+  const [descarga, setDescarga] = useState<number | null>(null)
+  const [descargando, setDescargando] = useState(false)
+  const [descargaError, setDescargaError] = useState<string | null>(null)
+
+  useEffect(() => {
+    void api.ultimaDescarga(obraId).then(setDescarga)
+  }, [obraId])
+
+  async function descargarDatos() {
+    setDescargaError(null)
+    setDescargando(true)
+    try {
+      const hecho = await api.descargarObra(obraId)
+      if (!hecho) setDescargaError('Hay cambios sin enviar; se descargarán en cuanto se envíen.')
+      setDescarga(await api.ultimaDescarga(obraId))
+    } catch (err) {
+      setDescargaError(mensajeError(err))
+    } finally {
+      setDescargando(false)
+    }
+  }
+
+  async function añadirSub(e: FormEvent) {
+    e.preventDefault()
+    setErrorSub(null)
+    try {
+      await api.crearSubcontrata(obraId, nuevaSub)
+      setNuevaSub('')
+      subs.recargar()
+    } catch (err) {
+      setErrorSub(mensajeError(err))
+    }
+  }
+
+  async function quitarSub(id: string, nombre: string) {
+    if (!window.confirm(`¿Quitar «${nombre}» de la lista? Los fallos que ya la tienen asignada no cambian.`)) return
+    setErrorSub(null)
+    try {
+      await api.borrarSubcontrata(obraId, id)
+      subs.recargar()
+    } catch (err) {
+      setErrorSub(mensajeError(err))
+    }
+  }
 
   const [email, setEmail] = useState('')
   const [mensaje, setMensaje] = useState<string | null>(null)
@@ -167,6 +215,38 @@ export default function Equipo() {
           {ocupado ? 'Invitando…' : 'Invitar'}
         </button>
       </form>
+
+      <h2 className="seccion">Subcontratas</h2>
+      <div className="tarjeta">
+        <p className="muted">Al apuntar un fallo podrás elegir la subcontrata responsable con un toque.</p>
+        <div className="chips">
+          {(subs.datos ?? []).length === 0 && <span className="muted">Todavía no hay ninguna.</span>}
+          {(subs.datos ?? []).map((s) => (
+            <button key={s.id} type="button" className="chip" onClick={() => void quitarSub(s.id, s.nombre)} aria-label={`Quitar ${s.nombre}`}>
+              {s.nombre} ×
+            </button>
+          ))}
+        </div>
+        <form onSubmit={añadirSub} className="acciones">
+          <input type="text" value={nuevaSub} onChange={(e) => setNuevaSub(e.target.value)} placeholder="Nueva subcontrata (Fontanería Ruiz)" aria-label="Nueva subcontrata" />
+          <button className="btn btn-primario" type="submit" disabled={!nuevaSub.trim()}>
+            Añadir
+          </button>
+        </form>
+        {errorSub && <p className="error">{errorSub}</p>}
+      </div>
+
+      <h2 className="seccion">Trabajar sin conexión</h2>
+      <div className="tarjeta">
+        <p className="muted">
+          La app guarda en el móvil los datos de la obra cuando la abres con internet. Sin cobertura puedes seguir apuntando fallos y haciendo fotos; se envían solos al volver la conexión.
+          {descarga ? ` Última descarga: ${fecha(new Date(descarga).toISOString())}.` : ' Todavía no se han descargado.'}
+        </p>
+        {descargaError && <p className="error">{descargaError}</p>}
+        <button className="btn" disabled={descargando} onClick={() => void descargarDatos()}>
+          {descargando ? 'Descargando…' : 'Descargar datos de esta obra'}
+        </button>
+      </div>
 
       <h2 className="seccion">Actividad reciente</h2>
       <div className="registro-actividad">

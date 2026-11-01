@@ -77,6 +77,14 @@ Abre la dirección publicada en el móvil y usa **Añadir a pantalla de inicio**
 
 En la pestaña **Actions** del repositorio, elige **Generar APK → Run workflow**. Al terminar, descarga `repaso-obra-apk` desde *Artifacts*. El APK es de pruebas ("debug"): Android no deja instalarlo encima de otro firmado con otra clave, así que al actualizar hay que desinstalar el anterior (los datos en la nube no se pierden).
 
+## Novedades: sin conexión, subcontratas y marcado de fotos
+
+- **Modo sin conexión**: al abrir una obra con internet, sus datos se guardan en el móvil (también con el botón «Descargar datos de esta obra» en Equipo). Sin cobertura puedes apuntar fallos, hacer fotos, cambiar estados y marcar reparados; todo queda en el móvil y se envía solo al volver la conexión (arriba aparece una franja con lo pendiente). No se puede sin conexión: crear/borrar obras o bloques, gestionar el equipo y la copia de seguridad. Las fotos ya subidas no se ven sin conexión.
+- **Importante**: no desinstales la app mientras haya cambios sin enviar; se perderían.
+- **Marcar fotos**: en el formulario de fallo, botón «Marcar» sobre cada foto (círculo, flecha, dibujo libre, deshacer).
+- **Subcontratas**: lista por obra (se gestiona en Equipo) para elegirlas con un toque. Migración `003_subcontratas.sql` (se aplica sola).
+- **Obras grandes**: la lista de fallos se muestra de 50 en 50.
+
 ## Seguridad
 
 - La clave `anon` es pública por diseño: va dentro de la app. La protección está en el **Row Level Security** de `schema.sql`: cada persona solo ve las obras a las que pertenece.

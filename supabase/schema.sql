@@ -86,6 +86,14 @@ create table if not exists public.fotos (
   created_at timestamptz not null default now()
 );
 
+create table if not exists public.subcontratas (
+  id         uuid primary key default gen_random_uuid(),
+  obra_id    uuid not null references public.obras(id) on delete cascade,
+  nombre     text not null,
+  created_at timestamptz not null default now(),
+  unique (obra_id, nombre)
+);
+
 create table if not exists public.actividad (
   id         uuid primary key default gen_random_uuid(),
   obra_id    uuid not null references public.obras(id) on delete cascade,
@@ -98,6 +106,7 @@ create index if not exists viviendas_bloque_idx  on public.viviendas (bloque_id)
 create index if not exists fallos_obra_idx       on public.fallos (obra_id, created_at desc);
 create index if not exists fallos_vivienda_idx   on public.fallos (vivienda_id);
 create index if not exists fotos_fallo_idx       on public.fotos (fallo_id);
+create index if not exists subcontratas_obra_idx on public.subcontratas (obra_id);
 create index if not exists actividad_obra_idx    on public.actividad (obra_id, created_at desc);
 
 -- ---------------------------------------------------------------------
@@ -463,6 +472,7 @@ alter table public.bloques        enable row level security;
 alter table public.viviendas      enable row level security;
 alter table public.fallos         enable row level security;
 alter table public.fotos          enable row level security;
+alter table public.subcontratas   enable row level security;
 alter table public.actividad      enable row level security;
 
 drop policy if exists profiles_select on public.profiles;
@@ -500,7 +510,7 @@ create policy invitaciones_all on public.invitaciones for all to authenticated
 do $$
 declare t text;
 begin
-  foreach t in array array['bloques', 'viviendas', 'fallos', 'fotos'] loop
+  foreach t in array array['bloques', 'viviendas', 'fallos', 'fotos', 'subcontratas'] loop
     execute format('drop policy if exists %1$s_all on public.%1$I', t);
     execute format(
       'create policy %1$s_all on public.%1$I for all to authenticated

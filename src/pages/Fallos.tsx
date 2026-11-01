@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import ExportDialog from '../components/ExportDialog'
 import { Estado, Pantalla } from '../components/Pantalla'
@@ -7,6 +7,9 @@ import { useCarga, useUrlsFotos } from '../lib/hooks'
 import { PRIORIDAD_TEXTO, fecha, nombrePersona, plantaLarga, ubicacion } from '../lib/format'
 
 type FiltroEstado = 'abierto' | 'reparado' | 'todos'
+
+/** En obras grandes la lista se enseña por tramos para que la pantalla vaya fluida. */
+const TRAMO = 50
 
 export default function Fallos() {
   const { obraId = '' } = useParams()
@@ -22,6 +25,7 @@ export default function Fallos() {
   const [subcontrata, setSubcontrata] = useState('')
   const [verFiltros, setVerFiltros] = useState(false)
   const [exportar, setExportar] = useState(false)
+  const [mostrados, setMostrados] = useState(TRAMO)
 
   const todos = datos.datos ?? []
 
@@ -56,7 +60,13 @@ export default function Fallos() {
   const reparados = todos.length - abiertos
   const filtrosActivos = [bloque, planta, prioridad, tipo, subcontrata].filter((x) => x !== '').length
 
-  const urls = useUrlsFotos(lista.slice(0, 60).filter((f) => f.fotos?.length > 0).map((f) => f.fotos[0].path))
+  // Al cambiar los filtros se vuelve al primer tramo
+  useEffect(() => {
+    setMostrados(TRAMO)
+  }, [texto, estado, bloque, planta, prioridad, tipo, subcontrata])
+
+  const enPantalla = lista.slice(0, mostrados)
+  const urls = useUrlsFotos(enPantalla.filter((f) => f.fotos?.length > 0).map((f) => f.fotos[0].path))
 
   function limpiar() {
     setBloque('')
@@ -149,7 +159,7 @@ export default function Fallos() {
         {lista.length} {lista.length === 1 ? 'fallo' : 'fallos'} · la exportación incluye solo lo que ves filtrado
       </p>
 
-      {lista.map((f) => {
+      {enPantalla.map((f) => {
         const foto = f.fotos?.[0] ? urls[f.fotos[0].path] : undefined
         return (
           <Link key={f.id} to={`/obra/${obraId}/fallo/${f.id}`} className="fila" style={{ alignItems: 'flex-start' }}>
@@ -174,6 +184,12 @@ export default function Fallos() {
           </Link>
         )
       })}
+
+      {lista.length > mostrados && (
+        <button type="button" className="btn" onClick={() => setMostrados((n) => n + TRAMO)}>
+          Mostrar más ({lista.length - mostrados} restantes)
+        </button>
+      )}
 
       {!datos.cargando && lista.length === 0 && <p className="muted">No hay fallos con estos filtros.</p>}
 

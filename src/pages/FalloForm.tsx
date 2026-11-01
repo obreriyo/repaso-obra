@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { ChangeEvent, FormEvent } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import MarcarFoto from '../components/MarcarFoto'
 import { Estado, Pantalla } from '../components/Pantalla'
 import * as api from '../lib/api'
 import { useCarga, useUrlsFotos } from '../lib/hooks'
@@ -21,7 +22,7 @@ export default function FalloForm() {
   const edicion = Boolean(falloId)
 
   const fallo = useCarga(() => (falloId ? api.getFallo(falloId) : Promise.resolve(null)), [falloId])
-  const subs = useCarga(() => api.subcontratas(obraId), [obraId])
+  const subs = useCarga(() => api.listSubcontratas(obraId), [obraId])
 
   const [estancia, setEstancia] = useState('')
   const [tipo, setTipo] = useState('Acabado')
@@ -33,13 +34,17 @@ export default function FalloForm() {
   const [quitadas, setQuitadas] = useState<Foto[]>([])
   const [error, setError] = useState<string | null>(null)
   const [guardando, setGuardando] = useState(false)
+  const [marcando, setMarcando] = useState<{ src: string; nueva?: number; existente?: Foto } | null>(null)
+  const iniciado = useRef(false)
 
   const datos = fallo.datos
   const vivId = viviendaId ?? datos?.vivienda_id ?? ''
   const volver = `/obra/${obraId}/vivienda/${vivId}`
 
   useEffect(() => {
-    if (!datos) return
+    // Solo se rellena una vez: si los datos se recargan mientras se escribe, no se pisa lo escrito
+    if (!datos || iniciado.current) return
+    iniciado.current = true
     setEstancia(datos.estancia)
     setTipo(datos.tipo)
     setDescripcion(datos.descripcion)
@@ -82,6 +87,24 @@ export default function FalloForm() {
     }
   }
 
+  /** Guarda la foto ya marcada: sustituye a la nueva o, si ya estaba guardada, la reemplaza. */
+  function fotoMarcada(archivo: File) {
+    if (!marcando) return
+    const vista = URL.createObjectURL(archivo)
+    if (marcando.nueva !== undefined) {
+      const i = marcando.nueva
+      setNuevas((lista) => {
+        if (lista[i]) URL.revokeObjectURL(lista[i].vista)
+        return lista.map((n, k) => (k === i ? { archivo, vista } : n))
+      })
+    } else if (marcando.existente) {
+      const vieja = marcando.existente
+      setNuevas((lista) => [...lista, { archivo, vista }])
+      setQuitadas((q) => [...q, vieja])
+    }
+    setMarcando(null)
+  }
+
   function quitarNueva(i: number) {
     setNuevas((lista) => {
       URL.revokeObjectURL(lista[i].vista)
@@ -114,6 +137,7 @@ export default function FalloForm() {
         await api.marcarEnCurso(vivId)
       }
 
+      if (comunes.subcontrata) await api.crearSubcontrata(obraId, comunes.subcontrata)
       for (const foto of quitadas) await api.borrarFoto(foto)
       for (const nueva of nuevas) await api.subirFoto(obraId, id, nueva.archivo)
 
@@ -150,12 +174,20 @@ export default function FalloForm() {
                 <button type="button" aria-label="Quitar foto" onClick={() => setQuitadas((q) => [...q, f])}>
                   ×
                 </button>
+                {urls[f.path] && (
+                  <button type="button" className="marcar-btn" onClick={() => setMarcando({ src: urls[f.path], existente: f })}>
+                    Marcar
+                  </button>
+                )}
               </div>
             ))}
             {nuevas.map((n, i) => (
               <div key={n.vista} className="foto" style={{ backgroundImage: `url(${n.vista})` }}>
                 <button type="button" aria-label="Quitar foto" onClick={() => quitarNueva(i)}>
                   ×
+                </button>
+                <button type="button" className="marcar-btn" onClick={() => setMarcando({ src: n.vista, nueva: i })}>
+                  Marcar
                 </button>
               </div>
             ))}
@@ -187,7 +219,7 @@ export default function FalloForm() {
               <input type="file" accept="image/*" multiple onChange={añadirFotos} />
             </label>
           </div>
-          <span className="muted">Haz una foto con la cámara o elige varias de la galería. Se reducen solas para ahorrar datos.</span>
+          <span className="muted">Haz una foto con la cámara o elige varias de la galería. Toca «Marcar» en una foto para dibujar círculos o flechas sobre ella.</span>
         </div>
 
         <div className="campo">
@@ -236,10 +268,22 @@ export default function FalloForm() {
 
         <div className="campo">
           <label htmlFor="subcontrata">Subcontrata responsable</label>
-          <input id="subcontrata" type="text" list="lista-subcontratas" value={subcontrata} onChange={(e) => setSubcontrata(e.target.value)} placeholder="Por ejemplo: Fontanería Ruiz" />
+          {(subs.datos ?? []).length > 0 && (
+            <div className="chips">
+              <button type="button" className={`chip ${subcontrata === '' ? 'act' : ''}`} onClick={() => setSubcontrata('')}>
+                Sin asignar
+              </button>
+              {(subs.datos ?? []).map((s) => (
+                <button key={s.id} type="button" className={`chip ${subcontrata === s.nombre ? 'act' : ''}`} onClick={() => setSubcontrata(s.nombre)}>
+                  {s.nombre}
+                </button>
+              ))}
+            </div>
+          )}
+          <input id="subcontrata" type="text" list="lista-subcontratas" value={subcontrata} onChange={(e) => setSubcontrata(e.target.value)} placeholder="O escribe una nueva (se añade a la lista)" />
           <datalist id="lista-subcontratas">
             {(subs.datos ?? []).map((s) => (
-              <option key={s} value={s} />
+              <option key={s.id} value={s.nombre} />
             ))}
           </datalist>
         </div>
@@ -270,6 +314,7 @@ export default function FalloForm() {
           </button>
         )}
       </form>
+      {marcando && <MarcarFoto src={marcando.src} onGuardar={fotoMarcada} onCancelar={() => setMarcando(null)} />}
     </Pantalla>
   )
 }

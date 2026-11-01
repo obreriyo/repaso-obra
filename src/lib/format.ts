@@ -100,7 +100,12 @@ export function paraArchivo(...partes: string[]): string {
 }
 
 export function mensajeError(e: unknown): string {
-  if (e instanceof Error) return e.message
+  if (e instanceof Error) {
+    if (/failed to fetch|networkerror|load failed|network request failed|aborted/i.test(e.message)) {
+      return 'No hay conexión con el servidor. Comprueba tu internet e inténtalo de nuevo.'
+    }
+    return e.message
+  }
   if (typeof e === 'string') return e
   return 'Ha ocurrido un error inesperado'
 }

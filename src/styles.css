@@ -828,3 +828,104 @@ button.foto-nueva {
   color: inherit;
   padding: 0;
 }
+
+/* ---- aviso de sincronización / modo sin conexión ---- */
+.sync-aviso {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 60;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: center;
+  padding: calc(4px + env(safe-area-inset-top)) 12px 4px;
+  font-size: 13px;
+  font-weight: 600;
+  background: #f5c518;
+  color: #1b1f24;
+}
+.sync-aviso.sync-off { background: #3a4048; color: #fff; }
+.sync-aviso.sync-error { background: #c0392b; color: #fff; }
+.sync-aviso button {
+  font: inherit;
+  font-size: 12px;
+  border: 1px solid currentColor;
+  background: transparent;
+  color: inherit;
+  border-radius: 6px;
+  padding: 2px 8px;
+}
+.sync-detalle {
+  position: fixed;
+  top: calc(30px + env(safe-area-inset-top));
+  left: 8px;
+  right: 8px;
+  z-index: 60;
+  max-height: 50vh;
+  overflow: auto;
+  background: #fff;
+  border: 1px solid #d9d6cc;
+  border-radius: 10px;
+  padding: 12px;
+  font-size: 13px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+}
+.sync-detalle p { margin: 0 0 8px; }
+
+/* ---- marcar sobre una foto ---- */
+.marcar {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: #111;
+  display: flex;
+  flex-direction: column;
+}
+.marcar-barra {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: calc(10px + env(safe-area-inset-top)) 12px 10px;
+}
+.marcar-lienzo {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.marcar-lienzo canvas {
+  max-width: 100%;
+  max-height: 100%;
+  touch-action: none;
+  background: #000;
+}
+.marcar-herr {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 12px calc(12px + env(safe-area-inset-bottom));
+}
+.marcar-color { width: 30px; height: 30px; border-radius: 50%; border: 0; padding: 0; }
+.marcar-sep { width: 1px; height: 24px; background: #555; }
+.foto .marcar-btn {
+  position: absolute;
+  left: 4px;
+  bottom: 4px;
+  right: auto;
+  top: auto;
+  width: auto;
+  height: auto;
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 0;
+  font-size: 12px;
+  font-weight: 700;
+  background: rgba(0, 0, 0, 0.7);
+  color: #fff;
+}

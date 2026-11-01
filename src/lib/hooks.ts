@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import * as local from './local'
 import { mensajeError } from './format'
 import { urlsFotos } from './api'
 
@@ -32,6 +33,26 @@ export function useCarga<T>(fn: () => Promise<T>, deps: unknown[]) {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [...deps, version])
+
+  // Cuando se terminan de enviar los cambios pendientes, se vuelve a leer lo del servidor
+  const pendientes = useRef(0)
+  useEffect(() => {
+    let vivo = true
+    void local.contarOps().then((n) => {
+      pendientes.current = n
+    })
+    const quitar = local.suscribir(() => {
+      void local.contarOps().then((n) => {
+        if (!vivo) return
+        if (pendientes.current > 0 && n === 0) setVersion((v) => v + 1)
+        pendientes.current = n
+      })
+    })
+    return () => {
+      vivo = false
+      quitar()
+    }
+  }, [])
 
   return { datos, error, cargando, recargar: () => setVersion((v) => v + 1) }
 }
