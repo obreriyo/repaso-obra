@@ -149,7 +149,9 @@ export default function Viviendas() {
             .filter((v) => v.planta === p)
             .map((v) => (
               <Link key={v.id} to={`/obra/${obraId}/vivienda/${v.id}`} className="fila">
-                <div className={`insignia ${v.estado === 'pendiente' ? 'gris' : ''}`}>{viviendaCorta(v.planta, v.letra)}</div>
+                <div className={`insignia ${v.estado === 'pendiente' ? 'gris' : ''} ${viviendaCorta(v.planta, v.letra).length > 4 ? 'larga' : ''}`}>
+                  {viviendaCorta(v.planta, v.letra)}
+                </div>
                 <div className="texto">
                   <span className="titulo-fila">{viviendaTitulo(v.planta, v.letra)}</span>
                   <span className="meta">

@@ -295,6 +295,12 @@ h2.seccion {
   flex: none;
 }
 
+.insignia.larga {
+  font-size: 15px;
+  white-space: nowrap;
+  letter-spacing: -0.2px;
+}
+
 .insignia.gris {
   background: #e3e5e8;
   color: var(--carbon);

@@ -38,4 +38,15 @@ fs.writeFileSync(
 </resources>
 `
 )
+
+// Nombre bajo el icono: más corto para que Android no lo corte
+const NOMBRE_APP = 'Repaso obra'
+const textos = path.join(res, 'values', 'strings.xml')
+if (fs.existsSync(textos)) {
+  let xml = fs.readFileSync(textos, 'utf8')
+  xml = xml.replace(/(<string name="app_name">)[^<]*(<\/string>)/, `$1${NOMBRE_APP}$2`)
+  xml = xml.replace(/(<string name="title_activity_main">)[^<]*(<\/string>)/, `$1${NOMBRE_APP}$2`)
+  fs.writeFileSync(textos, xml)
+  console.log(`Nombre de la app: ${NOMBRE_APP}`)
+}
 console.log('Iconos de la app copiados.')
