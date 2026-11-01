@@ -1,3 +1,4 @@
+import CampoClave from '../components/CampoClave'
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { Navigate } from 'react-router-dom'
@@ -102,13 +103,11 @@ export default function Login() {
         {modo !== 'recuperar' && (
           <div className="campo">
             <label htmlFor="clave">Contraseña</label>
-            <input
+            <CampoClave
               id="clave"
-              type="password"
               value={clave}
-              onChange={(e) => setClave(e.target.value)}
+              onChange={setClave}
               autoComplete={modo === 'entrar' ? 'current-password' : 'new-password'}
-              required
             />
           </div>
         )}

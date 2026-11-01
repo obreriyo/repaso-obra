@@ -929,3 +929,40 @@ button.foto-nueva {
   background: rgba(0, 0, 0, 0.7);
   color: #fff;
 }
+
+/* ---- contraseña con ojo ---- */
+.clave-caja { position: relative; }
+.clave-caja input { padding-right: 56px; width: 100%; }
+.clave-ojo {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 48px;
+  height: 48px;
+  border: 0;
+  background: transparent;
+  color: #5b616a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+/* ---- botones legibles sobre el fondo oscuro de «Marcar» ---- */
+.marcar .btn,
+.marcar .chip {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.55);
+  background: transparent;
+}
+.marcar .btn-primario,
+.marcar .chip.act {
+  background: #f5c518;
+  border-color: #f5c518;
+  color: #1b1f24;
+}
+.marcar .btn:disabled,
+.marcar .chip:disabled {
+  opacity: 0.4;
+}

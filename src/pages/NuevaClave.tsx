@@ -1,3 +1,4 @@
+import CampoClave from '../components/CampoClave'
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { supabase } from '../lib/supabase'
@@ -39,7 +40,7 @@ export default function NuevaClave() {
       <form className="login-form" onSubmit={guardar}>
         <div className="campo">
           <label htmlFor="nueva">Nueva contraseña</label>
-          <input id="nueva" type="password" value={clave} onChange={(e) => setClave(e.target.value)} autoComplete="new-password" required />
+          <CampoClave id="nueva" value={clave} onChange={setClave} autoComplete="new-password" />
         </div>
         {error && <p className="error">{error}</p>}
         <button className="btn btn-primario" type="submit" disabled={ocupado}>
