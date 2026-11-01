@@ -1,5 +1,5 @@
 import * as api from './api'
-import { ESTADO_VIVIENDA_TEXTO, PRIORIDAD_TEXTO, fecha, paraArchivo, plantaTexto, viviendaNombre } from './format'
+import { ESTADO_VIVIENDA_TEXTO, PRIORIDAD_TEXTO, cargoTexto, fecha, paraArchivo, plantaTexto, viviendaNombre } from './format'
 import type { Resultado } from './export'
 import type { Obra } from './types'
 
@@ -118,7 +118,7 @@ export async function copiaDeSeguridad(obra: Obra, op: OpcionesCopia): Promise<R
     miembros.map((m) => ({
       nombre: m.profiles?.nombre ?? '',
       email: m.profiles?.email ?? '',
-      cargo: m.profiles?.cargo === 'jefe_obra' ? 'Jefe de obra' : 'Encargado'
+      cargo: cargoTexto(m.profiles)
     }))
   )
 

@@ -41,6 +41,7 @@ export interface Persona {
   nombre: string | null
   email?: string | null
   cargo?: string | null
+  cargo_nombre?: string | null
 }
 
 export interface Fallo {

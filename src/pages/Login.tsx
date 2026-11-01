@@ -18,6 +18,7 @@ export default function Login() {
   const [modo, setModo] = useState<Modo>('entrar')
   const [nombre, setNombre] = useState('')
   const [cargo, setCargo] = useState('jefe_obra')
+  const [cargoNombre, setCargoNombre] = useState('')
   const [email, setEmail] = useState('')
   const [clave, setClave] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -40,7 +41,7 @@ export default function Login() {
         const r = await supabase.auth.signUp({
           email: email.trim(),
           password: clave,
-          options: { data: { nombre: nombre.trim(), cargo }, emailRedirectTo: direccionApp() }
+          options: { data: { nombre: nombre.trim(), cargo, cargo_nombre: cargoNombre.trim() }, emailRedirectTo: direccionApp() }
         })
         if (r.error) throw r.error
         if (!r.data.session) {
@@ -90,8 +91,15 @@ export default function Login() {
               <select id="cargo" value={cargo} onChange={(e) => setCargo(e.target.value)}>
                 <option value="jefe_obra">Jefe de obra</option>
                 <option value="encargado">Encargado</option>
+                <option value="otro">Otro (operario, albañil…)</option>
               </select>
             </div>
+            {cargo === 'otro' && (
+              <div className="campo">
+                <label htmlFor="cargo-nombre">¿Cuál es tu puesto?</label>
+                <input id="cargo-nombre" type="text" value={cargoNombre} onChange={(e) => setCargoNombre(e.target.value)} placeholder="Operario, Albañil, Fontanero…" maxLength={40} />
+              </div>
+            )}
           </>
         )}
 

@@ -44,21 +44,49 @@ export const ESTADO_VIVIENDA_TEXTO: Record<EstadoVivienda, string> = {
 /** planta 0 = planta baja; planta 100 = ático (siempre queda por encima de las demás) */
 export const ATICO = 100
 
+/** Los trasteros se guardan como "viviendas" de la planta 200; su letra es el número del trastero */
+export const TRASTERO = 200
+
+/** Orden de las plantas en pantalla (de arriba abajo): ático, plantas altas, bajo y, al final, trasteros */
+export function ordenPlanta(planta: number): number {
+  return planta === TRASTERO ? -1 : planta
+}
+
 export function plantaTexto(planta: number): string {
   if (planta === 0) return 'Bajo'
   if (planta === ATICO) return 'Ático'
+  if (planta === TRASTERO) return 'Trastero'
   return `${planta}º`
 }
 
 export function plantaLarga(planta: number): string {
   if (planta === 0) return 'Planta baja'
   if (planta === ATICO) return 'Ático'
+  if (planta === TRASTERO) return 'Trasteros'
   return `Planta ${planta}`
 }
 
-/** "2ºB", "Bajo A" o "Ático A" */
+/** "2ºB", "Bajo A", "Ático A" o "Trastero 12" */
 export function viviendaNombre(planta: number, letra: string): string {
-  return planta === 0 || planta === ATICO ? `${plantaTexto(planta)} ${letra}` : `${planta}º${letra}`
+  return planta === 0 || planta === ATICO || planta === TRASTERO ? `${plantaTexto(planta)} ${letra}` : `${planta}º${letra}`
+}
+
+/** Texto corto para la insignia de la lista: "2ºB", "Bajo A", "T12"… */
+export function viviendaCorta(planta: number, letra: string): string {
+  if (planta === TRASTERO) return /^t/i.test(letra) ? letra : `T${letra}`
+  return viviendaNombre(planta, letra)
+}
+
+/** Título de la pantalla de una vivienda o trastero */
+export function viviendaTitulo(planta: number, letra: string): string {
+  return planta === TRASTERO ? `Trastero ${letra}` : `${plantaLarga(planta)} · Vivienda ${letra}`
+}
+
+/** "Jefe de obra", "Encargado" o el nombre del puesto escrito (Operario, Albañil…) */
+export function cargoTexto(p?: Persona | null): string {
+  if (p?.cargo === 'jefe_obra') return 'Jefe de obra'
+  if (p?.cargo === 'otro') return (p.cargo_nombre ?? '').trim() || 'Operario'
+  return 'Encargado'
 }
 
 /** "Bloque A · 2ºB" */

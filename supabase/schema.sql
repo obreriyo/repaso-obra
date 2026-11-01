@@ -13,7 +13,8 @@ create extension if not exists pgcrypto;
 create table if not exists public.profiles (
   id         uuid primary key references auth.users(id) on delete cascade,
   nombre     text not null default '',
-  cargo      text not null default 'encargado' check (cargo in ('jefe_obra', 'encargado')),
+  cargo      text not null default 'encargado' check (cargo in ('jefe_obra', 'encargado', 'otro')),
+  cargo_nombre text,
   email      text,
   created_at timestamptz not null default now()
 );
@@ -148,6 +149,7 @@ as $$
   select b.nombre || ' · ' ||
          case when vi.planta = 0   then 'Bajo ' || vi.letra
               when vi.planta = 100 then 'Ático ' || vi.letra
+              when vi.planta = 200 then 'Trastero ' || vi.letra
               else vi.planta::text || 'º' || vi.letra end
   from public.viviendas vi
   join public.bloques b on b.id = vi.bloque_id
@@ -165,12 +167,18 @@ returns trigger
 language plpgsql security definer
 set search_path = public
 as $$
+declare
+  v_cargo text := coalesce(new.raw_user_meta_data ->> 'cargo', '');
 begin
-  insert into public.profiles (id, nombre, cargo, email)
+  if v_cargo not in ('jefe_obra', 'otro') then v_cargo := 'encargado'; end if;
+  insert into public.profiles (id, nombre, cargo, cargo_nombre, email)
   values (
     new.id,
     coalesce(new.raw_user_meta_data ->> 'nombre', ''),
-    case when new.raw_user_meta_data ->> 'cargo' = 'jefe_obra' then 'jefe_obra' else 'encargado' end,
+    v_cargo,
+    case when v_cargo = 'otro'
+         then coalesce(nullif(left(trim(new.raw_user_meta_data ->> 'cargo_nombre'), 40), ''), 'Operario')
+         else null end,
     new.email
   )
   on conflict (id) do nothing;
@@ -246,8 +254,8 @@ create or replace view public.obras_resumen with (security_invoker = true) as
 select
   o.id, o.nombre, o.direccion, o.created_at,
   (select count(*) from public.bloques  b where b.obra_id = o.id)::int as bloques,
-  (select count(*) from public.viviendas v where v.obra_id = o.id)::int as viviendas,
-  (select count(*) from public.viviendas v where v.obra_id = o.id and v.estado = 'revisada')::int as revisadas,
+  (select count(*) from public.viviendas v where v.obra_id = o.id and v.planta < 200)::int as viviendas,
+  (select count(*) from public.viviendas v where v.obra_id = o.id and v.planta < 200 and v.estado = 'revisada')::int as revisadas,
   (select count(*) from public.fallos f where f.obra_id = o.id and f.estado = 'abierto')::int as fallos_abiertos
 from public.obras o;
 
@@ -542,3 +550,81 @@ create policy fotos_storage_insert on storage.objects for insert to authenticate
 drop policy if exists fotos_storage_delete on storage.objects;
 create policy fotos_storage_delete on storage.objects for delete to authenticated
   using (bucket_id = 'fotos' and public.es_miembro(((storage.foldername(name))[1])::uuid));
+
+-- ---------------------------------------------------------------------
+-- Cargos y trasteros (migraciones 004 y 005)
+-- ---------------------------------------------------------------------
+
+-- Nadie puede cambiarse el cargo directamente: solo con cambiar_cargo (abajo)
+revoke update on public.profiles from authenticated;
+grant update (nombre) on public.profiles to authenticated;
+
+-- Cambia el cargo de una persona. Solo si quien lo pide es jefe de obra o encargado
+-- y la persona comparte alguna obra con él (o es él mismo).
+create or replace function public.cambiar_cargo(p_user uuid, p_cargo text, p_nombre text default null)
+returns void
+language plpgsql security definer
+set search_path = public
+as $$
+declare
+  v_mio text;
+begin
+  if auth.uid() is null then
+    raise exception 'No has iniciado sesión';
+  end if;
+  select cargo into v_mio from public.profiles where id = auth.uid();
+  if v_mio is null or v_mio not in ('jefe_obra', 'encargado') then
+    raise exception 'Solo el jefe de obra o un encargado pueden cambiar cargos';
+  end if;
+  if p_cargo not in ('jefe_obra', 'encargado', 'otro') then
+    raise exception 'Cargo no válido';
+  end if;
+  if p_user <> auth.uid() and not public.comparte_obra(p_user) then
+    raise exception 'Esa persona no está en tus obras';
+  end if;
+  update public.profiles
+  set cargo = p_cargo,
+      cargo_nombre = case when p_cargo = 'otro'
+                          then coalesce(nullif(left(trim(p_nombre), 40), ''), 'Operario')
+                          else null end
+  where id = p_user;
+end;
+$$;
+
+-- Añade trasteros (por número) a un bloque. Los que ya existen se ignoran.
+-- Devuelve cuántos se han creado.
+create or replace function public.crear_trasteros(p_bloque uuid, p_numeros text[])
+returns int
+language plpgsql security definer
+set search_path = public
+as $$
+declare
+  v_obra  uuid;
+  v_creados int;
+begin
+  if auth.uid() is null then
+    raise exception 'No has iniciado sesión';
+  end if;
+  select obra_id into v_obra from public.bloques where id = p_bloque;
+  if v_obra is null or not public.es_miembro(v_obra) then
+    raise exception 'No tienes acceso a este bloque';
+  end if;
+  if p_numeros is null or array_length(p_numeros, 1) is null then
+    raise exception 'Indica al menos un trastero';
+  end if;
+  if array_length(p_numeros, 1) > 500 then
+    raise exception 'Demasiados trasteros de una vez (máximo 500)';
+  end if;
+
+  with nuevos as (
+    insert into public.viviendas (obra_id, bloque_id, planta, letra)
+    select distinct v_obra, p_bloque, 200, left(trim(n), 12)
+    from unnest(p_numeros) as n
+    where trim(n) <> ''
+    on conflict (bloque_id, planta, letra) do nothing
+    returning 1
+  )
+  select count(*) into v_creados from nuevos;
+  return v_creados;
+end;
+$$;

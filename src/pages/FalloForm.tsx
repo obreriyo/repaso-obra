@@ -5,7 +5,7 @@ import MarcarFoto from '../components/MarcarFoto'
 import { Estado, Pantalla } from '../components/Pantalla'
 import * as api from '../lib/api'
 import { useCarga, useUrlsFotos } from '../lib/hooks'
-import { ESTANCIAS, PRIORIDAD_TEXTO, TIPOS, mensajeError } from '../lib/format'
+import { ESTANCIAS, PRIORIDAD_TEXTO, TIPOS, TRASTERO, mensajeError } from '../lib/format'
 import { esNativa } from '../lib/nativo'
 import type { EstadoFallo, Foto, Prioridad } from '../lib/types'
 
@@ -22,6 +22,7 @@ export default function FalloForm() {
   const edicion = Boolean(falloId)
 
   const fallo = useCarga(() => (falloId ? api.getFallo(falloId) : Promise.resolve(null)), [falloId])
+  const viv = useCarga(() => (viviendaId ? api.getVivienda(viviendaId) : Promise.resolve(null)), [viviendaId])
   const subs = useCarga(() => api.listSubcontratas(obraId), [obraId])
 
   const [estancia, setEstancia] = useState('')
@@ -52,6 +53,11 @@ export default function FalloForm() {
     setSubcontrata(datos.subcontrata ?? '')
     setEstado(datos.estado)
   }, [datos])
+
+  // En un trastero nuevo, la estancia ya es «Trastero»
+  useEffect(() => {
+    if (!edicion && viv.datos?.planta === TRASTERO) setEstancia((e) => e || 'Trastero')
+  }, [edicion, viv.datos])
 
   const existentes = (datos?.fotos ?? []).filter((f) => !quitadas.some((q) => q.id === f.id))
   const urls = useUrlsFotos(existentes.map((f) => f.path))

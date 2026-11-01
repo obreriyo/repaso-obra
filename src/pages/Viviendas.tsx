@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import { Estado, Pantalla } from '../components/Pantalla'
 import * as api from '../lib/api'
 import { useCarga } from '../lib/hooks'
-import { ESTADO_VIVIENDA_TEXTO, mensajeError, plantaLarga, viviendaNombre } from '../lib/format'
+import { ESTADO_VIVIENDA_TEXTO, mensajeError, ordenPlanta, plantaLarga, viviendaCorta, viviendaTitulo } from '../lib/format'
 import type { EstadoVivienda, Vivienda } from '../lib/types'
 
 type Filtro = 'todas' | 'fallos' | 'sin'
@@ -76,7 +76,7 @@ export default function Viviendas() {
   }
 
   // Agrupa por planta (de la más alta a la planta baja)
-  const plantas = Array.from(new Set(visibles.map((v) => v.planta))).sort((a, b) => b - a)
+  const plantas = Array.from(new Set(visibles.map((v) => v.planta))).sort((a, b) => ordenPlanta(b) - ordenPlanta(a))
 
   return (
     <Pantalla
@@ -101,7 +101,7 @@ export default function Viviendas() {
           )}
           <div style={{ marginTop: 8 }}>
             <div className="barra-texto">
-              <span>{nombreBloque} · viviendas revisadas</span>
+              <span>{nombreBloque} · revisadas</span>
               <b style={{ color: '#fff' }}>
                 {revisadas} de {todas.length}
               </b>
@@ -149,11 +149,9 @@ export default function Viviendas() {
             .filter((v) => v.planta === p)
             .map((v) => (
               <Link key={v.id} to={`/obra/${obraId}/vivienda/${v.id}`} className="fila">
-                <div className={`insignia ${v.estado === 'pendiente' ? 'gris' : ''}`}>{viviendaNombre(v.planta, v.letra)}</div>
+                <div className={`insignia ${v.estado === 'pendiente' ? 'gris' : ''}`}>{viviendaCorta(v.planta, v.letra)}</div>
                 <div className="texto">
-                  <span className="titulo-fila">
-                    {plantaLarga(v.planta)} · Vivienda {v.letra}
-                  </span>
+                  <span className="titulo-fila">{viviendaTitulo(v.planta, v.letra)}</span>
                   <span className="meta">
                     {v.fallos_abiertos} abiertos · {v.fallos_reparados} reparados
                   </span>
@@ -169,6 +167,11 @@ export default function Viviendas() {
       <Link className="btn" to={`/obra/${obraId}/nuevo-bloque`}>
         + Añadir bloque
       </Link>
+      {bloqueId && (
+        <Link className="btn" to={`/obra/${obraId}/bloque/${bloqueId}/trasteros`}>
+          + Añadir trasteros a {nombreBloque || 'este bloque'}
+        </Link>
+      )}
 
       {errorBorrar && <p className="error">{errorBorrar}</p>}
       {bloqueId && (

@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import CampoTrasteros from '../components/CampoTrasteros'
 import EditorBloque, { bloqueInicial, nombreBloqueNumero, numViviendas, plantasParaEnviar } from '../components/EditorBloque'
 import { Estado, Pantalla } from '../components/Pantalla'
 import * as api from '../lib/api'
 import { useCarga } from '../lib/hooks'
 import { mensajeError } from '../lib/format'
+import { parsearTrasteros } from '../lib/trasteros'
 import type { BloqueNuevo } from '../lib/types'
 
 /** Añade un bloque nuevo a una obra que ya existe, sin tocar lo que ya hay. */
@@ -16,6 +18,7 @@ export default function NuevoBloque() {
   const existentes = useCarga(() => api.listBloques(obraId), [obraId])
   const [bloque, setBloque] = useState<BloqueNuevo>(bloqueInicial('Bloque B'))
   const [nombreTocado, setNombreTocado] = useState(false)
+  const [trasteros, setTrasteros] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [ocupado, setOcupado] = useState(false)
 
@@ -33,9 +36,16 @@ export default function NuevoBloque() {
     setError(null)
     if (!bloque.nombre.trim()) return setError('El bloque necesita un nombre.')
     if (numViviendas(bloque) === 0) return setError('El bloque necesita al menos una vivienda.')
+    let numeros: string[]
+    try {
+      numeros = parsearTrasteros(trasteros)
+    } catch (err) {
+      return setError(mensajeError(err))
+    }
     setOcupado(true)
     try {
-      await api.crearBloque(obraId, bloque.nombre.trim(), plantasParaEnviar(bloque))
+      const bloqueId = await api.crearBloque(obraId, bloque.nombre.trim(), plantasParaEnviar(bloque))
+      if (numeros.length > 0) await api.crearTrasteros(bloqueId, numeros)
       nav(`/obra/${obraId}`, { replace: true })
     } catch (err) {
       setError(mensajeError(err))
@@ -59,6 +69,8 @@ export default function NuevoBloque() {
             })
           }}
         />
+
+        <CampoTrasteros texto={trasteros} onChange={setTrasteros} />
 
         <p className="muted">
           Se crearán {numViviendas(bloque)} viviendas nuevas. Lo que ya tienes en la obra no cambia.

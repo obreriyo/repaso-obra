@@ -7,7 +7,7 @@ import { useAuth } from '../lib/auth'
 import { copiaDeSeguridad } from '../lib/copia'
 import { entregar, puedeCompartir } from '../lib/export'
 import { useCarga } from '../lib/hooks'
-import { fecha, mensajeError, nombrePersona } from '../lib/format'
+import { cargoTexto, fecha, mensajeError, nombrePersona } from '../lib/format'
 
 function iniciales(nombre: string): string {
   return nombre
@@ -72,6 +72,28 @@ export default function Equipo() {
       subs.recargar()
     } catch (err) {
       setErrorSub(mensajeError(err))
+    }
+  }
+
+  // Cambio de cargo (solo jefe de obra o encargado)
+  const [editando, setEditando] = useState<string | null>(null)
+  const [cargoSel, setCargoSel] = useState('encargado')
+  const [cargoNombre, setCargoNombre] = useState('')
+  const [cargoOcupado, setCargoOcupado] = useState(false)
+  const miCargo = (miembros.datos ?? []).find((m) => m.user_id === usuario?.id)?.profiles?.cargo
+  const puedoCambiarCargos = miCargo === 'jefe_obra' || miCargo === 'encargado'
+
+  async function guardarCargo(userId: string) {
+    setError(null)
+    setCargoOcupado(true)
+    try {
+      await api.cambiarCargo(userId, cargoSel, cargoNombre)
+      setEditando(null)
+      miembros.recargar()
+    } catch (err) {
+      setError(mensajeError(err))
+    } finally {
+      setCargoOcupado(false)
     }
   }
 
@@ -178,10 +200,42 @@ export default function Equipo() {
                 {yo ? ' (tú)' : ''}
               </span>
               <span className="meta">
-                {m.profiles?.cargo === 'jefe_obra' ? 'Jefe de obra' : 'Encargado'}
+                {cargoTexto(m.profiles)}
                 {m.profiles?.email ? ` · ${m.profiles.email}` : ''}
               </span>
+              {editando === m.user_id && (
+                <div className="campo" style={{ marginTop: 8 }}>
+                  <select value={cargoSel} onChange={(e) => setCargoSel(e.target.value)} aria-label="Cargo">
+                    <option value="jefe_obra">Jefe de obra</option>
+                    <option value="encargado">Encargado</option>
+                    <option value="otro">Otro (operario, albañil…)</option>
+                  </select>
+                  {cargoSel === 'otro' && (
+                    <input type="text" value={cargoNombre} onChange={(e) => setCargoNombre(e.target.value)} placeholder="Operario, Albañil, Fontanero…" maxLength={40} aria-label="Nombre del puesto" />
+                  )}
+                  <div className="acciones">
+                    <button type="button" className="btn btn-pequeno" disabled={cargoOcupado} onClick={() => setEditando(null)}>
+                      Cancelar
+                    </button>
+                    <button type="button" className="btn btn-pequeno btn-primario" disabled={cargoOcupado} onClick={() => void guardarCargo(m.user_id)}>
+                      {cargoOcupado ? 'Guardando…' : 'Guardar cargo'}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
+            {puedoCambiarCargos && editando !== m.user_id && (
+              <button
+                className="btn-texto"
+                onClick={() => {
+                  setEditando(m.user_id)
+                  setCargoSel(m.profiles?.cargo ?? 'encargado')
+                  setCargoNombre(m.profiles?.cargo === 'otro' ? (m.profiles?.cargo_nombre ?? '') : '')
+                }}
+              >
+                Cargo
+              </button>
+            )}
             {!yo && (
               <button className="btn-texto peligro" onClick={() => void quitar(m.user_id, nombre)}>
                 Quitar

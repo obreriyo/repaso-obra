@@ -14,6 +14,7 @@ import Vivienda from './pages/Vivienda'
 import FalloForm from './pages/FalloForm'
 import Fallos from './pages/Fallos'
 import Equipo from './pages/Equipo'
+import NuevosTrasteros from './pages/NuevosTrasteros'
 import EstadoSync from './components/EstadoSync'
 
 function Privada({ children }: { children: ReactNode }) {
@@ -84,6 +85,7 @@ export default function App() {
       <Route path="/nueva-obra" element={<Privada><NuevaObra /></Privada>} />
       <Route path="/obra/:obraId" element={<Privada><Viviendas /></Privada>} />
       <Route path="/obra/:obraId/nuevo-bloque" element={<Privada><NuevoBloque /></Privada>} />
+      <Route path="/obra/:obraId/bloque/:bloqueId/trasteros" element={<Privada><NuevosTrasteros /></Privada>} />
       <Route path="/obra/:obraId/vivienda/:viviendaId" element={<Privada><Vivienda /></Privada>} />
       <Route path="/obra/:obraId/vivienda/:viviendaId/fallo/nuevo" element={<Privada><FalloForm /></Privada>} />
       <Route path="/obra/:obraId/fallo/:falloId" element={<Privada><FalloForm /></Privada>} />

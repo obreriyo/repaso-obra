@@ -4,7 +4,7 @@ import ExportDialog from '../components/ExportDialog'
 import { Estado, Pantalla } from '../components/Pantalla'
 import * as api from '../lib/api'
 import { useCarga, useUrlsFotos } from '../lib/hooks'
-import { ESTADO_VIVIENDA_TEXTO, PRIORIDAD_TEXTO, mensajeError, plantaLarga, viviendaNombre } from '../lib/format'
+import { ESTADO_VIVIENDA_TEXTO, PRIORIDAD_TEXTO, mensajeError, viviendaNombre, viviendaTitulo } from '../lib/format'
 import type { EstadoVivienda, Fallo } from '../lib/types'
 
 const ESTADOS: EstadoVivienda[] = ['pendiente', 'en_curso', 'revisada']
@@ -62,7 +62,7 @@ export default function Vivienda() {
     <Pantalla
       obraId={obraId}
       atras={{ a: `/obra/${obraId}`, texto: 'Viviendas' }}
-      titulo={v ? `${plantaLarga(v.planta)} · Vivienda ${v.letra}` : 'Vivienda'}
+      titulo={v ? viviendaTitulo(v.planta, v.letra) : 'Vivienda'}
       subtitulo={v ? `${v.bloque_nombre} · ${v.fallos_abiertos} fallos abiertos · ${v.fallos_reparados} reparados` : undefined}
       derecha={
         <button className="btn-cab" onClick={() => setExportar(true)} disabled={lista.length === 0}>

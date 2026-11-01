@@ -73,7 +73,7 @@ export default function NuevaObra() {
         ))}
 
         <p className="muted">
-          Se crearán {total} viviendas, nombradas con planta y letra (por ejemplo 2ºB). La planta baja se llama «Bajo» y el ático «Ático». Una planta sin ninguna letra marcada no se crea. Más adelante podrás añadir más bloques desde la pantalla de la obra.
+          Se crearán {total} viviendas, nombradas con planta y letra (por ejemplo 2ºB). La planta baja se llama «Bajo» y el ático «Ático». Una planta sin ninguna letra marcada no se crea. Más adelante podrás añadir más bloques y los trasteros de cada bloque desde la pantalla de la obra.
         </p>
 
         {error && <p className="error">{error}</p>}

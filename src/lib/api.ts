@@ -506,7 +506,7 @@ export function listMiembros(obraId: string): Promise<Miembro[]> {
   return leer(`miembros:${obraId}`, async () => {
     const r = await supabase
       .from('obra_miembros')
-      .select('user_id, profiles(nombre,cargo,email)')
+      .select('user_id, profiles(nombre,cargo,cargo_nombre,email)')
       .eq('obra_id', obraId)
     return ok(r) as unknown as Miembro[]
   })
@@ -523,6 +523,18 @@ export function listInvitaciones(obraId: string): Promise<Invitacion[]> {
 export async function invitar(obraId: string, email: string): Promise<'anadido' | 'pendiente'> {
   const r = await supabase.rpc('invitar_miembro', { p_obra: obraId, p_email: email })
   return ok(r) as unknown as 'anadido' | 'pendiente'
+}
+
+/** Cambia el cargo de una persona (solo jefe de obra o encargado). Requiere conexión. */
+export async function cambiarCargo(userId: string, cargo: string, nombre: string): Promise<void> {
+  if (!enLinea()) throw new Error('Para cambiar un cargo necesitas conexión a internet.')
+  ok(await supabase.rpc('cambiar_cargo', { p_user: userId, p_cargo: cargo, p_nombre: nombre }))
+}
+
+/** Añade trasteros (por número) a un bloque. Devuelve cuántos se han creado. Requiere conexión. */
+export async function crearTrasteros(bloqueId: string, numeros: string[]): Promise<number> {
+  const r = await supabase.rpc('crear_trasteros', { p_bloque: bloqueId, p_numeros: numeros })
+  return ok(r) as unknown as number
 }
 
 export async function quitarMiembro(obraId: string, userId: string): Promise<void> {

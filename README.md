@@ -83,6 +83,8 @@ En la pestaña **Actions** del repositorio, elige **Generar APK → Run workflow
 - **Importante**: no desinstales la app mientras haya cambios sin enviar; se perderían.
 - **Marcar fotos**: en el formulario de fallo, botón «Marcar» sobre cada foto (círculo, flecha, dibujo libre, deshacer).
 - **Subcontratas**: lista por obra (se gestiona en Equipo) para elegirlas con un toque. Migración `003_subcontratas.sql` (se aplica sola).
+- **Cargo «Otro»**: al crear la cuenta se puede elegir un tercer cargo con nombre libre (Operario, Albañil…). Solo el jefe de obra o un encargado pueden cambiar el cargo de las personas (botón «Cargo» en Equipo). Migración `004_cargos.sql`.
+- **Trasteros por bloque**: se añaden al crear un bloque o con «+ Añadir trasteros» en la pantalla de la obra (rangos como 1-12 o listas). Se tratan como viviendas de una «planta» especial: tienen estado, fallos, fotos y salen en las exportaciones. Migración `005_trasteros.sql`.
 - **Obras grandes**: la lista de fallos se muestra de 50 en 50.
 
 ## Seguridad
