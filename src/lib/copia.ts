@@ -1,5 +1,5 @@
 import * as api from './api'
-import { ESTADO_VIVIENDA_TEXTO, PRIORIDAD_TEXTO, cargoTexto, fecha, paraArchivo, plantaTexto, viviendaNombre } from './format'
+import { ESTADO_VIVIENDA_TEXTO, PRIORIDAD_TEXTO, cargoTexto, fecha, paraArchivo, plantaTexto, quienCreo, quienEdito, viviendaNombre } from './format'
 import type { Resultado } from './export'
 import type { Obra } from './types'
 
@@ -101,9 +101,9 @@ export async function copiaDeSeguridad(obra: Obra, op: OpcionesCopia): Promise<R
       estado: f.estado === 'reparado' ? 'Reparado' : 'Abierto',
       subcontrata: f.subcontrata ?? '',
       fotos: fotosDe(f),
-      creador: f.creador?.nombre ?? '',
+      creador: quienCreo(f),
       creado: fecha(f.created_at),
-      editor: f.editor?.nombre ?? '',
+      editor: f.editor || f.editado_por_persona ? quienEdito(f) : '',
       editado: fecha(f.updated_at)
     }))
   )

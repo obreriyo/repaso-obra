@@ -7,6 +7,8 @@ import { useAuth } from '../lib/auth'
 import { copiaDeSeguridad } from '../lib/copia'
 import { entregar, puedeCompartir } from '../lib/export'
 import { useCarga } from '../lib/hooks'
+import { abrirSelector, personaActiva } from '../lib/quien'
+import type { PersonaCuenta } from '../lib/types'
 import { cargoTexto, fecha, mensajeError, nombrePersona } from '../lib/format'
 
 function iniciales(nombre: string): string {
@@ -28,6 +30,20 @@ export default function Equipo() {
   const actividad = useCarga(() => api.listActividad(obraId), [obraId])
 
   const subs = useCarga(() => api.listSubcontratas(obraId), [obraId])
+  // Varias personas con el mismo correo
+  const [, repintar] = useState(0)
+  useEffect(() => {
+    const alCambiar = () => repintar((n) => n + 1)
+    window.addEventListener('repaso-quien', alCambiar)
+    return () => window.removeEventListener('repaso-quien', alCambiar)
+  }, [])
+  const personas = useCarga(() => api.listPersonas(), [])
+  const [pEditando, setPEditando] = useState<string | 'nueva' | null>(null)
+  const [pNombre, setPNombre] = useState('')
+  const [pCargo, setPCargo] = useState<PersonaCuenta['cargo']>('encargado')
+  const [pPuesto, setPPuesto] = useState('')
+  const [pError, setPError] = useState<string | null>(null)
+  const [pOcupado, setPOcupado] = useState(false)
   const [nuevaSub, setNuevaSub] = useState('')
   const [errorSub, setErrorSub] = useState<string | null>(null)
   const [descarga, setDescarga] = useState<number | null>(null)
@@ -82,6 +98,47 @@ export default function Equipo() {
   const [cargoOcupado, setCargoOcupado] = useState(false)
   const miCargo = (miembros.datos ?? []).find((m) => m.user_id === usuario?.id)?.profiles?.cargo
   const puedoCambiarCargos = miCargo === 'jefe_obra' || miCargo === 'encargado'
+
+  // Quién soy en este móvil: la persona elegida o, si no hay, el titular de la cuenta
+  const activa = personaActiva(usuario?.id)
+  const cargoActivo = activa ? activa.cargo : miCargo
+  const puedoGestionarPersonas = cargoActivo === 'jefe_obra' || cargoActivo === 'encargado'
+
+  function abrirPersona(p: PersonaCuenta | null) {
+    setPError(null)
+    setPEditando(p ? p.id : 'nueva')
+    setPNombre(p?.nombre ?? '')
+    setPCargo(p?.cargo ?? 'encargado')
+    setPPuesto(p?.cargo === 'otro' ? (p.cargo_nombre ?? '') : '')
+  }
+
+  async function guardarPersona(e: FormEvent) {
+    e.preventDefault()
+    setPError(null)
+    setPOcupado(true)
+    try {
+      const datos = { nombre: pNombre, cargo: pCargo, cargo_nombre: pPuesto }
+      if (pEditando === 'nueva') await api.crearPersona(datos)
+      else if (pEditando) await api.editarPersona(pEditando, datos)
+      setPEditando(null)
+      personas.recargar()
+    } catch (err) {
+      setPError(mensajeError(err))
+    } finally {
+      setPOcupado(false)
+    }
+  }
+
+  async function quitarPersona(p: PersonaCuenta) {
+    if (!window.confirm(`¿Quitar a ${p.nombre} de la lista? Lo que ya apuntó conserva su nombre.`)) return
+    setPError(null)
+    try {
+      await api.borrarPersona(p.id)
+      personas.recargar()
+    } catch (err) {
+      setPError(mensajeError(err))
+    }
+  }
 
   async function guardarCargo(userId: string) {
     setError(null)
@@ -270,6 +327,71 @@ export default function Equipo() {
         </button>
       </form>
 
+      <h2 className="seccion">Personas de esta cuenta</h2>
+      <div className="tarjeta">
+        <p className="muted">
+          Si varias personas entran con el mismo correo, añádelas aquí. Cada una elige quién es en su móvil y su nombre sale en los fallos que apunta.
+        </p>
+        {(personas.datos ?? []).length > 0 && (
+          <p className="muted">
+            En este móvil eres: <b>{activa ? activa.nombre : 'el titular de la cuenta'}</b>{' '}
+            <button type="button" className="btn-texto" onClick={abrirSelector}>
+              Cambiar
+            </button>
+          </p>
+        )}
+        {(personas.datos ?? []).map((p) => (
+          <div key={p.id} className="fila">
+            <div className="avatar gris">{(p.nombre.trim()[0] ?? '?').toUpperCase()}</div>
+            <div className="texto">
+              <span className="titulo-fila">
+                {p.nombre}
+                {activa?.id === p.id ? ' (tú)' : ''}
+              </span>
+              <span className="meta">{cargoTexto(p)}</span>
+            </div>
+            {puedoGestionarPersonas && (
+              <>
+                <button className="btn-texto" onClick={() => abrirPersona(p)}>
+                  Editar
+                </button>
+                <button className="btn-texto peligro" onClick={() => void quitarPersona(p)}>
+                  Quitar
+                </button>
+              </>
+            )}
+          </div>
+        ))}
+        {pEditando && (
+          <form onSubmit={guardarPersona} className="campo">
+            <input type="text" value={pNombre} onChange={(e) => setPNombre(e.target.value)} placeholder="Nombre de la persona" maxLength={60} aria-label="Nombre de la persona" required />
+            <select value={pCargo} onChange={(e) => setPCargo(e.target.value as PersonaCuenta['cargo'])} aria-label="Cargo de la persona">
+              <option value="jefe_obra">Jefe de obra</option>
+              <option value="encargado">Encargado</option>
+              <option value="otro">Otro (operario, albañil…)</option>
+            </select>
+            {pCargo === 'otro' && (
+              <input type="text" value={pPuesto} onChange={(e) => setPPuesto(e.target.value)} placeholder="Operario, Albañil, Fontanero…" maxLength={40} aria-label="Nombre del puesto" />
+            )}
+            <div className="acciones">
+              <button type="button" className="btn btn-pequeno" disabled={pOcupado} onClick={() => setPEditando(null)}>
+                Cancelar
+              </button>
+              <button type="submit" className="btn btn-pequeno btn-primario" disabled={pOcupado}>
+                {pOcupado ? 'Guardando…' : 'Guardar'}
+              </button>
+            </div>
+          </form>
+        )}
+        {pError && <p className="error">{pError}</p>}
+        {puedoGestionarPersonas && !pEditando && (
+          <button className="btn" onClick={() => abrirPersona(null)}>
+            + Añadir persona
+          </button>
+        )}
+        {!puedoGestionarPersonas && <p className="muted">Solo el jefe de obra y los encargados pueden cambiar esta lista.</p>}
+      </div>
+
       <h2 className="seccion">Subcontratas</h2>
       <div className="tarjeta">
         <p className="muted">Al apuntar un fallo podrás elegir la subcontrata responsable con un toque.</p>
@@ -308,7 +430,7 @@ export default function Equipo() {
         {(actividad.datos ?? []).map((a) => (
           <div key={a.id}>
             <span>
-              <b>{nombrePersona(a.profiles)}</b> {a.texto}
+              <b>{a.persona || nombrePersona(a.profiles)}</b> {a.texto}
             </span>
             <small>{fecha(a.created_at)}</small>
           </div>

@@ -4,7 +4,7 @@ import ExportDialog from '../components/ExportDialog'
 import { Estado, Pantalla } from '../components/Pantalla'
 import * as api from '../lib/api'
 import { useCarga, useUrlsFotos } from '../lib/hooks'
-import { PRIORIDAD_TEXTO, fecha, nombrePersona, plantaLarga, ubicacion } from '../lib/format'
+import { PRIORIDAD_TEXTO, fecha, plantaLarga, quienEdito, ubicacion } from '../lib/format'
 
 type FiltroEstado = 'abierto' | 'reparado' | 'todos'
 
@@ -173,7 +173,7 @@ export default function Fallos() {
               </span>
               <span className="meta">
                 {f.subcontrata ? `${f.subcontrata} · ` : ''}
-                Editado por {nombrePersona(f.editor)} · {fecha(f.updated_at)}
+                Editado por {quienEdito(f)} · {fecha(f.updated_at)}
               </span>
             </div>
             {f.estado === 'reparado' ? (

@@ -1,6 +1,7 @@
 import { supabase } from './supabase'
 import { comprimir } from './images'
 import * as local from './local'
+import { personaActiva } from './quien'
 import { enLinea, esErrorDeRed, sincronizar } from './sync'
 import type {
   Actividad,
@@ -15,6 +16,7 @@ import type {
   NuevoFallo,
   Obra,
   Persona,
+  PersonaCuenta,
   PlantaNueva,
   Subcontrata,
   Vivienda
@@ -97,8 +99,8 @@ async function parchear<T>(clave: string, cambio: (v: T) => T): Promise<void> {
 }
 
 /** Persona que está usando la app (funciona sin conexión). */
-async function yo(): Promise<Persona> {
-  let u: { email?: string; user_metadata?: Record<string, unknown> } | null = null
+async function yo(): Promise<Persona & { id: string }> {
+  let u: { id?: string; email?: string; user_metadata?: Record<string, unknown> } | null = null
   try {
     const { data } = await supabase.auth.getSession()
     u = data.session?.user ?? null
@@ -108,7 +110,7 @@ async function yo(): Promise<Persona> {
   if (!u) u = local.sesionGuardada()?.user ?? null
   const meta = u?.user_metadata ?? {}
   const nombre = (meta.nombre as string | undefined) ?? (meta.name as string | undefined) ?? u?.email ?? null
-  return { nombre, email: u?.email ?? null }
+  return { id: u?.id ?? '', nombre, email: u?.email ?? null }
 }
 
 /** Ajusta los contadores de la vivienda y de la obra en la copia local. */
@@ -331,11 +333,20 @@ export function getFallo(id: string): Promise<Fallo> {
 export async function crearFallo(datos: NuevoFallo): Promise<string> {
   const id = crypto.randomUUID()
   const ahora = new Date().toISOString()
-  const fila = { id, ...datos, estado: 'abierto' as EstadoFallo, created_at: ahora }
+  const persona = await yo()
+  // Si varias personas comparten la cuenta, se guarda quién lo apunta
+  const quien = personaActiva(persona.id)?.nombre ?? null
+  const fila = {
+    id,
+    ...datos,
+    estado: 'abierto' as EstadoFallo,
+    created_at: ahora,
+    creado_por_persona: quien,
+    editado_por_persona: quien
+  }
   await local.añadirOp('fallo_crear', fila)
 
   // Copia local para que se vea al momento, con o sin conexión
-  const persona = await yo()
   const viv = await local.getCache<Vivienda>(`vivienda:${datos.vivienda_id}`)
   const fallo: Fallo = {
     ...fila,
@@ -362,9 +373,11 @@ export async function actualizarFallo(
   cambios: Partial<Omit<NuevoFallo, 'obra_id' | 'vivienda_id'>> & { estado?: EstadoFallo }
 ): Promise<void> {
   const persona = await yo()
+  const quien = personaActiva(persona.id)?.nombre ?? null
   const antes = await local.getCache<Fallo>(`fallo:${id}`)
-  await local.añadirOp('fallo_actualizar', { id, cambios })
-  await parchearFallo(id, (f) => ({ ...f, ...cambios, editor: persona, updated_at: new Date().toISOString() }))
+  const completos = { ...cambios, editado_por_persona: quien }
+  await local.añadirOp('fallo_actualizar', { id, cambios: completos })
+  await parchearFallo(id, (f) => ({ ...f, ...completos, editor: persona, updated_at: new Date().toISOString() }))
   if (antes && cambios.estado && cambios.estado !== antes.estado) {
     const abre = cambios.estado === 'abierto'
     await ajustarContadores(antes.obra_id, antes.vivienda_id, abre ? 1 : -1, abre ? -1 : 1)
@@ -525,6 +538,58 @@ export async function invitar(obraId: string, email: string): Promise<'anadido' 
   return ok(r) as unknown as 'anadido' | 'pendiente'
 }
 
+// ------------------------------------------- personas de una cuenta compartida
+
+/** Personas añadidas a esta cuenta (varias personas con el mismo correo). */
+export async function listPersonas(): Promise<PersonaCuenta[]> {
+  const u = await yo()
+  return leer(`personas:${u.id}`, async () => {
+    const r = await supabase.from('personas').select('id,nombre,cargo,cargo_nombre').order('created_at')
+    return ok(r) as unknown as PersonaCuenta[]
+  })
+}
+
+type DatosPersona = Pick<PersonaCuenta, 'nombre' | 'cargo' | 'cargo_nombre'>
+
+function limpiarPersona(d: DatosPersona): DatosPersona {
+  const nombre = d.nombre.trim()
+  if (!nombre) throw new Error('Escribe el nombre de la persona.')
+  return {
+    nombre,
+    cargo: d.cargo,
+    cargo_nombre: d.cargo === 'otro' ? d.cargo_nombre?.trim().slice(0, 40) || 'Operario' : null
+  }
+}
+
+function requiereConexion() {
+  if (!enLinea()) throw new Error('Para cambiar la lista de personas necesitas conexión a internet.')
+}
+
+/** Avisa al resto de la app de que la lista de personas cambió y borra su copia local. */
+async function personasCambiaron(): Promise<void> {
+  const u = await yo()
+  await local.delCache(`personas:${u.id}`)
+  window.dispatchEvent(new Event('repaso-personas'))
+}
+
+export async function crearPersona(d: DatosPersona): Promise<void> {
+  requiereConexion()
+  ok(await supabase.from('personas').insert(limpiarPersona(d)))
+  await personasCambiaron()
+}
+
+export async function editarPersona(id: string, d: DatosPersona): Promise<void> {
+  requiereConexion()
+  ok(await supabase.from('personas').update(limpiarPersona(d)).eq('id', id))
+  await personasCambiaron()
+}
+
+export async function borrarPersona(id: string): Promise<void> {
+  requiereConexion()
+  ok(await supabase.from('personas').delete().eq('id', id))
+  await personasCambiaron()
+}
+
 /** Cambia el cargo de una persona (solo jefe de obra o encargado). Requiere conexión. */
 export async function cambiarCargo(userId: string, cargo: string, nombre: string): Promise<void> {
   if (!enLinea()) throw new Error('Para cambiar un cargo necesitas conexión a internet.')
@@ -549,7 +614,7 @@ export function listActividad(obraId: string, limite = 30): Promise<Actividad[]>
   return leer(`actividad:${obraId}`, async () => {
     const r = await supabase
       .from('actividad')
-      .select('id,texto,created_at,profiles(nombre,email)')
+      .select('id,texto,created_at,persona,profiles(nombre,email)')
       .eq('obra_id', obraId)
       .order('created_at', { ascending: false })
       .limit(limite)

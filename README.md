@@ -85,6 +85,7 @@ En la pestaña **Actions** del repositorio, elige **Generar APK → Run workflow
 - **Subcontratas**: lista por obra (se gestiona en Equipo) para elegirlas con un toque. Migración `003_subcontratas.sql` (se aplica sola).
 - **Cargo «Otro»**: al crear la cuenta se puede elegir un tercer cargo con nombre libre (Operario, Albañil…). Solo el jefe de obra o un encargado pueden cambiar el cargo de las personas (botón «Cargo» en Equipo). Migración `004_cargos.sql`.
 - **Trasteros por bloque**: se añaden al crear un bloque o con «+ Añadir trasteros» en la pantalla de la obra (rangos como 1-12 o listas). Se tratan como viviendas de una «planta» especial: tienen estado, fallos, fotos y salen en las exportaciones. Migración `005_trasteros.sql`.
+- **Varias personas con el mismo correo**: en Equipo → «Personas de esta cuenta» se añaden personas con nombre y cargo. Al abrir la app, cada móvil pregunta «¿Quién eres?» y lo recuerda. Su nombre sale en «Editado por», en la actividad y en las exportaciones. Solo el jefe de obra y los encargados pueden cambiar la lista (lo controla la app, de confianza, sin PIN). Migración `006_personas.sql`. Invitar por correo sigue funcionando igual.
 - **Obras grandes**: la lista de fallos se muestra de 50 en 50.
 
 ## Seguridad

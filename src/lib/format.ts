@@ -96,6 +96,15 @@ export function ubicacion(f: Fallo): string {
   return `${v.bloque?.nombre ?? ''} · ${viviendaNombre(v.planta, v.letra)}`
 }
 
+/** Quién editó un fallo por última vez: la persona de la cuenta compartida o, si no hay, la cuenta */
+export function quienEdito(f: Fallo): string {
+  return (f.editado_por_persona ?? '').trim() || nombrePersona(f.editor)
+}
+
+export function quienCreo(f: Fallo): string {
+  return (f.creado_por_persona ?? '').trim() || (f.creador?.nombre ?? '')
+}
+
 export function nombrePersona(p?: Persona | null): string {
   if (!p) return 'Alguien'
   const nombre = (p.nombre ?? '').trim()

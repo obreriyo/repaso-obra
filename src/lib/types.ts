@@ -60,6 +60,8 @@ export interface Fallo {
   editor: Persona | null
   creador: Persona | null
   fotos: Foto[]
+  creado_por_persona?: string | null
+  editado_por_persona?: string | null
 }
 
 export interface NuevoFallo {
@@ -70,6 +72,14 @@ export interface NuevoFallo {
   descripcion: string
   prioridad: Prioridad
   subcontrata: string | null
+}
+
+/** Una persona dentro de una cuenta compartida (varias personas con el mismo correo) */
+export interface PersonaCuenta {
+  id: string
+  nombre: string
+  cargo: 'jefe_obra' | 'encargado' | 'otro'
+  cargo_nombre: string | null
 }
 
 export interface Subcontrata {
@@ -90,6 +100,7 @@ export interface Invitacion {
 
 export interface Actividad {
   id: string
+  persona?: string | null
   texto: string
   created_at: string
   profiles: Persona | null

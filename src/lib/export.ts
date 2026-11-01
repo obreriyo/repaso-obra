@@ -1,6 +1,6 @@
 import { urlsFotos } from './api'
 import { supabase } from './supabase'
-import { fecha, fechaLarga, paraArchivo, plantaTexto, ubicacion, PRIORIDAD_TEXTO } from './format'
+import { fecha, fechaLarga, paraArchivo, plantaTexto, quienCreo, quienEdito, ubicacion, PRIORIDAD_TEXTO } from './format'
 import { esNativa } from './nativo'
 import type { Fallo } from './types'
 
@@ -234,10 +234,10 @@ async function generarExcel(fallos: Fallo[], op: OpcionesExportar): Promise<Blob
       prioridad: PRIORIDAD_TEXTO[f.prioridad],
       estado: f.estado === 'reparado' ? 'Reparado' : 'Abierto',
       subcontrata: f.subcontrata ?? '',
-      creador: f.creador?.nombre ?? '',
+      creador: quienCreo(f),
       creado: fecha(f.created_at),
       editado: fecha(f.updated_at),
-      editor: f.editor?.nombre ?? ''
+      editor: f.editor || f.editado_por_persona ? quienEdito(f) : ''
     })
     fila.alignment = { vertical: 'top', wrapText: true }
 

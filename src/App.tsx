@@ -16,6 +16,7 @@ import Fallos from './pages/Fallos'
 import Equipo from './pages/Equipo'
 import NuevosTrasteros from './pages/NuevosTrasteros'
 import EstadoSync from './components/EstadoSync'
+import QuienEres from './components/QuienEres'
 
 function Privada({ children }: { children: ReactNode }) {
   const { usuario, cargando } = useAuth()
@@ -79,6 +80,7 @@ export default function App() {
     <>
     <BotonAtras />
     <EstadoSync />
+    <QuienEres />
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/" element={<Privada><Obras /></Privada>} />

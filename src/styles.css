@@ -972,3 +972,19 @@ button.foto-nueva {
 .marcar .chip:disabled {
   opacity: 0.4;
 }
+
+/* ---- pantalla «¿Quién eres?» ---- */
+.quien {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  background: var(--fondo);
+  overflow: auto;
+}
+button.fila {
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+.fila-act { border-color: var(--amarillo); box-shadow: 0 0 0 2px var(--amarillo) inset; }
