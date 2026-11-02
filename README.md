@@ -122,3 +122,6 @@ src/components/          cabecera y navegación, ventana de exportar
 | `npm run build` | Genera la versión final en `dist/` |
 | `npm run typecheck` | Revisa los tipos de TypeScript |
 | `npm run preview` | Sirve la versión compilada para probarla |
+
+## Firma fija del APK
+El workflow "Generar APK" guarda la clave de firma en tu base de datos (tabla privada `secretos`, sin acceso desde la app). La primera vez la crea y después siempre reutiliza la misma, así cada APK nuevo se instala encima del anterior sin desinstalar. No borres esa tabla.

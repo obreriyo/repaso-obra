@@ -14,6 +14,7 @@ export default function QuienEres() {
   const [personas, setPersonas] = useState<PersonaCuenta[] | null>(null)
   const [abierta, setAbierta] = useState(false)
   const [manual, setManual] = useState(false)
+  const [, setVersion] = useState(0)
 
   const cargar = useCallback(() => {
     if (!usuario) {
@@ -46,11 +47,14 @@ export default function QuienEres() {
       cargar()
     }
     window.addEventListener('repaso-personas', alCambiar)
+    const alElegir = () => setVersion((v) => v + 1)
     window.addEventListener('repaso-quien-abrir', alAbrir)
+    window.addEventListener('repaso-quien', alElegir)
     window.addEventListener('online', alCambiar)
     return () => {
       window.removeEventListener('repaso-personas', alCambiar)
       window.removeEventListener('repaso-quien-abrir', alAbrir)
+      window.removeEventListener('repaso-quien', alElegir)
       window.removeEventListener('online', alCambiar)
     }
   }, [cargar])
