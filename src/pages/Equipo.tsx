@@ -32,6 +32,7 @@ export default function Equipo() {
   const subs = useCarga(() => api.listSubcontratas(obraId), [obraId])
   // Varias personas con el mismo correo
   const [, repintar] = useState(0)
+  const [verTodaActividad, setVerTodaActividad] = useState(false)
   useEffect(() => {
     const alCambiar = () => repintar((n) => n + 1)
     window.addEventListener('repaso-quien', alCambiar)
@@ -424,19 +425,6 @@ export default function Equipo() {
         </button>
       </div>
 
-      <h2 className="seccion">Actividad reciente</h2>
-      <div className="registro-actividad">
-        {(actividad.datos ?? []).length === 0 && <div className="muted">Aún no hay actividad.</div>}
-        {(actividad.datos ?? []).map((a) => (
-          <div key={a.id}>
-            <span>
-              <b>{a.persona || nombrePersona(a.profiles)}</b> {a.texto}
-            </span>
-            <small>{fecha(a.created_at)}</small>
-          </div>
-        ))}
-      </div>
-
       <h2 className="seccion">Copia de seguridad</h2>
       <div className="tarjeta">
         <p className="muted">
@@ -460,6 +448,24 @@ export default function Equipo() {
             {copiaOcupada ? 'Preparando…' : 'Descargar copia'}
           </button>
         </div>
+      </div>
+
+      <h2 className="seccion">Actividad reciente</h2>
+      <div className="registro-actividad">
+        {(actividad.datos ?? []).length === 0 && <div className="muted">Aún no hay actividad.</div>}
+        {(actividad.datos ?? []).slice(0, verTodaActividad ? undefined : 10).map((a) => (
+          <div key={a.id}>
+            <span>
+              <b>{a.persona || nombrePersona(a.profiles)}</b> {a.texto}
+            </span>
+            <small>{fecha(a.created_at)}</small>
+          </div>
+        ))}
+        {(actividad.datos ?? []).length > 10 && (
+          <button type="button" className="btn-texto" onClick={() => setVerTodaActividad((v) => !v)}>
+            {verTodaActividad ? 'Ver menos' : 'Ver más'}
+          </button>
+        )}
       </div>
 
       <button className="btn btn-peligro" onClick={() => void eliminarObra()}>
