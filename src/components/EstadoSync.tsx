@@ -14,6 +14,7 @@ export default function EstadoSync() {
   const [pendientes, setPendientes] = useState(0)
   const [conexion, setConexion] = useState(enLinea())
   const [sincronizando, setSincronizando] = useState(false)
+  const [lenta, setLenta] = useState(false)
   const [errores, setErrores] = useState<ErrorSync[]>([])
   const [verErrores, setVerErrores] = useState(false)
 
@@ -26,6 +27,7 @@ export default function EstadoSync() {
       setPendientes(n)
       setErrores([...e])
       setSincronizando(estadoSync().sincronizando)
+      setLenta(estadoSync().lenta)
     }
     void refrescar()
     const quitar = local.suscribir(() => void refrescar())
@@ -79,7 +81,7 @@ export default function EstadoSync() {
     }
   }, [usuario])
 
-  const visible = Boolean(usuario) && !(conexion && pendientes === 0 && errores.length === 0)
+  const visible = Boolean(usuario) && !(conexion && pendientes === 0 && errores.length === 0 && !lenta)
 
   // Deja sitio arriba para que la franja no tape la cabecera
   useEffect(() => {
@@ -98,6 +100,9 @@ export default function EstadoSync() {
     clase += ' sync-off'
   } else if (pendientes > 0) {
     texto = sincronizando ? `Enviando ${pendientes} cambio${pendientes === 1 ? '' : 's'}…` : `${pendientes} cambio${pendientes === 1 ? '' : 's'} por enviar`
+  } else if (errores.length === 0) {
+    texto = 'Conexión lenta · mostrando lo guardado en el móvil'
+    clase += ' sync-off'
   } else {
     texto = `${errores.length} cambio${errores.length === 1 ? '' : 's'} no se pudo enviar`
     clase += ' sync-error'

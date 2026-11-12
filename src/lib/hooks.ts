@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import * as local from './local'
 import { mensajeError } from './format'
-import { urlsFotos } from './api'
+import { EVENTO_DATOS, forzarProximasLecturas, urlsFotos } from './api'
 
 /**
  * Carga datos asíncronos y expone { datos, error, cargando, recargar }.
@@ -12,11 +12,24 @@ export function useCarga<T>(fn: () => Promise<T>, deps: unknown[]) {
   const [error, setError] = useState<string | null>(null)
   const [cargando, setCargando] = useState(true)
   const [version, setVersion] = useState(0)
+  // Tras recargar() o tras enviar cambios se piden datos frescos; al abrir se enseña antes lo guardado
+  const fresco = useRef(false)
+  // Cuando llegan datos nuevos en segundo plano se repinta sin volver a poner «Cargando…»
+  const suave = useRef(false)
 
   useEffect(() => {
     let vivo = true
-    setCargando(true)
-    fn()
+    if (!suave.current) setCargando(true)
+    suave.current = false
+    forzarProximasLecturas(fresco.current)
+    fresco.current = false
+    let promesa: Promise<T>
+    try {
+      promesa = fn()
+    } finally {
+      forzarProximasLecturas(false)
+    }
+    promesa
       .then((d) => {
         if (!vivo) return
         setDatos(d)
@@ -34,6 +47,15 @@ export function useCarga<T>(fn: () => Promise<T>, deps: unknown[]) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [...deps, version])
 
+  useEffect(() => {
+    const alLlegarDatos = () => {
+      suave.current = true
+      setVersion((v) => v + 1)
+    }
+    window.addEventListener(EVENTO_DATOS, alLlegarDatos)
+    return () => window.removeEventListener(EVENTO_DATOS, alLlegarDatos)
+  }, [])
+
   // Cuando se terminan de enviar los cambios pendientes, se vuelve a leer lo del servidor
   const pendientes = useRef(0)
   useEffect(() => {
@@ -44,7 +66,10 @@ export function useCarga<T>(fn: () => Promise<T>, deps: unknown[]) {
     const quitar = local.suscribir(() => {
       void local.contarOps().then((n) => {
         if (!vivo) return
-        if (pendientes.current > 0 && n === 0) setVersion((v) => v + 1)
+        if (pendientes.current > 0 && n === 0) {
+          fresco.current = true
+          setVersion((v) => v + 1)
+        }
         pendientes.current = n
       })
     })
@@ -54,7 +79,15 @@ export function useCarga<T>(fn: () => Promise<T>, deps: unknown[]) {
     }
   }, [])
 
-  return { datos, error, cargando, recargar: () => setVersion((v) => v + 1) }
+  return {
+    datos,
+    error,
+    cargando,
+    recargar: () => {
+      fresco.current = true
+      setVersion((v) => v + 1)
+    }
+  }
 }
 
 /** Devuelve un mapa ruta -> URL firmada temporal para mostrar fotos privadas. */

@@ -71,11 +71,24 @@ export function Pantalla({ eyebrow, titulo, subtitulo, atras, derecha, cabExtra,
   )
 }
 
-export function Estado({ cargando, error }: { cargando?: boolean; error?: string | null }) {
+export function Estado({
+  cargando,
+  error,
+  reintentar
+}: {
+  cargando?: boolean
+  error?: string | null
+  reintentar?: () => void
+}) {
   return (
     <>
       {cargando && <p className="muted">Cargando…</p>}
       {error && <p className="error">{error}</p>}
+      {error && !cargando && reintentar && (
+        <button type="button" className="btn" onClick={reintentar}>
+          Reintentar
+        </button>
+      )}
     </>
   )
 }

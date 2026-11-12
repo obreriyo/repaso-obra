@@ -243,7 +243,7 @@ export default function Equipo() {
       titulo="Equipo"
       subtitulo="Todos pueden ver, crear, editar y exportar"
     >
-      <Estado cargando={miembros.cargando} error={miembros.error || actividad.error} />
+      <Estado cargando={miembros.cargando} error={miembros.error || actividad.error} reintentar={() => { miembros.recargar(); actividad.recargar() }} />
 
       <h2 className="seccion">Personas con acceso</h2>
       {(miembros.datos ?? []).map((m) => {

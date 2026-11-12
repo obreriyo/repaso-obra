@@ -128,3 +128,6 @@ El workflow "Generar APK" guarda la clave de firma en tu base de datos (tabla pr
 
 ## Modificar un bloque
 En Viviendas, botón «Modificar (bloque)»: se puede cambiar el nombre, las plantas, el ático y las letras de cada planta. Se añaden las viviendas nuevas y solo se quitan las que no tienen ningún fallo (si tienen, la app avisa y no deja). Los trasteros no se tocan. Requiere la migración `007_modificar_bloque.sql` (se aplica con «Aplicar actualización»). Necesita internet.
+
+## Carga rápida y conexión lenta
+Al abrir una pantalla se enseña al instante lo que ya está guardado en el móvil y se actualiza en segundo plano. Si pides datos frescos (tras un cambio) y el servidor no responde en 6 s (20 s si no hay nada guardado), se queda lo guardado y sale el aviso «Conexión lenta», o un error con botón «Reintentar». Subir fotos y guardar cambios no tienen límite de espera.

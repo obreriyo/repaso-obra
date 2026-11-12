@@ -35,8 +35,30 @@ function esPermisoCaducado(e: { message?: string; status?: number } | null | und
   return e.status === 401 || /jwt expired|jwt is expired|invalid jwt|token is expired/i.test(e.message ?? '')
 }
 
+/** Conexión lenta: se muestra lo guardado en el móvil porque Supabase no respondió a tiempo. */
+let lentaDesde = 0
+let relojLenta: ReturnType<typeof setTimeout> | null = null
+const DURACION_AVISO_LENTA = 30_000
+
+export function marcarLenta(lenta: boolean): void {
+  const antes = esLenta()
+  if (relojLenta) clearTimeout(relojLenta)
+  relojLenta = null
+  if (lenta) {
+    lentaDesde = Date.now()
+    relojLenta = setTimeout(() => local.avisar(), DURACION_AVISO_LENTA + 100)
+  } else {
+    lentaDesde = 0
+  }
+  if (antes !== esLenta() || lenta) local.avisar()
+}
+
+export function esLenta(): boolean {
+  return lentaDesde > 0 && Date.now() - lentaDesde < DURACION_AVISO_LENTA
+}
+
 export function estadoSync() {
-  return { sincronizando, errores }
+  return { sincronizando, errores, lenta: esLenta() }
 }
 
 async function cargarErrores() {

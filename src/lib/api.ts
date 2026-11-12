@@ -2,7 +2,7 @@ import { supabase } from './supabase'
 import { comprimir } from './images'
 import * as local from './local'
 import { personaActiva } from './quien'
-import { enLinea, esErrorDeRed, sincronizar } from './sync'
+import { enLinea, esErrorDeRed, marcarLenta, sincronizar } from './sync'
 import type {
   Actividad,
   Bloque,
@@ -52,11 +52,76 @@ async function leerTodo<T>(
 const SIN_DATOS =
   'Sin conexión, y estos datos todavía no están guardados en el móvil. Ábrelos una vez con internet.'
 
+const TOPE_CON_COPIA = 6_000
+const TOPE_SIN_COPIA = 20_000
+const TOPE_SEGUNDO_PLANO = 15_000
+const SIN_BUENA_CONEXION =
+  'La conexión es muy lenta y estos datos todavía no están guardados en el móvil. Inténtalo de nuevo en un momento.'
+
+class TopeAgotado extends Error {}
+
+/** Espera la respuesta como mucho `ms`; si no llega, falla con TopeAgotado (la petición sigue por su cuenta). */
+function conTope<T>(promesa: Promise<T>, ms: number): Promise<T> {
+  return new Promise<T>((resolver, rechazar) => {
+    const reloj = setTimeout(() => rechazar(new TopeAgotado('tope')), ms)
+    promesa.then(
+      (v) => {
+        clearTimeout(reloj)
+        resolver(v)
+      },
+      (e) => {
+        clearTimeout(reloj)
+        rechazar(e)
+      }
+    )
+  })
+}
+
+// Cuando useCarga pide datos «frescos» (recargar tras un cambio) se salta lo guardado.
+let forzarRed = false
+export function forzarProximasLecturas(valor: boolean): void {
+  forzarRed = valor
+}
+
+/** Se avisa cuando, en segundo plano, llegan datos distintos a los guardados. */
+export const EVENTO_DATOS = 'repaso-datos'
+const refrescando = new Set<string>()
+
+async function guardarSiProcede(clave: string, datos: unknown): Promise<boolean> {
+  // Si mientras tanto se apuntó algo sin enviar, no se pisa la copia local con datos viejos
+  if ((await local.contarOps()) > 0) return false
+  const actual = await local.getCache<unknown>(clave)
+  if (actual !== undefined && JSON.stringify(actual) === JSON.stringify(datos)) return false
+  await local.setCache(clave, datos)
+  return true
+}
+
+/** Pide los datos al servidor en segundo plano y, si cambian, avisa para repintar. */
+async function refrescar<T>(clave: string, pedir: () => Promise<T>): Promise<void> {
+  if (refrescando.has(clave)) return
+  refrescando.add(clave)
+  try {
+    const datos = await conTope(pedir(), TOPE_SEGUNDO_PLANO)
+    marcarLenta(false)
+    if ((await guardarSiProcede(clave, datos)) && typeof window !== 'undefined') window.dispatchEvent(new Event(EVENTO_DATOS))
+  } catch (e) {
+    if (e instanceof TopeAgotado) marcarLenta(true)
+    /* sin conexión u otro error: se queda lo guardado */
+  } finally {
+    refrescando.delete(clave)
+  }
+}
+
 /**
- * Lee datos de Supabase y guarda una copia en el móvil. Sin conexión (o con cambios
- * pendientes de enviar) se devuelve la copia del móvil, que ya incluye lo apuntado sin conexión.
+ * Lee datos de Supabase y guarda una copia en el móvil.
+ * - Si ya hay copia en el móvil, se enseña al instante y se actualiza en segundo plano.
+ * - Si se pide «fresco» (tras un cambio), se espera al servidor como mucho unos segundos
+ *   y, si no responde, se enseña la copia (o un error claro si no hay copia).
+ * - Sin conexión (o con cambios pendientes de enviar) se devuelve la copia del móvil,
+ *   que ya incluye lo apuntado sin conexión.
  */
 async function leer<T>(clave: string, pedir: () => Promise<T>): Promise<T> {
+  const forzar = forzarRed // se lee antes de cualquier espera
   const pendientes = await local.contarOps()
   if (pendientes > 0 && enLinea()) {
     // Envía lo pendiente en segundo plano; mientras tanto se enseña la copia local
@@ -72,20 +137,34 @@ async function leer<T>(clave: string, pedir: () => Promise<T>): Promise<T> {
     if (copia !== undefined) return copia
     throw new Error(SIN_DATOS)
   }
+
+  const copia = await local.getCache<T>(clave)
+  if (copia !== undefined && !forzar) {
+    void refrescar(clave, pedir)
+    return copia
+  }
+
+  const peticion = pedir()
   try {
-    const datos = await pedir()
-    // Si mientras tanto se apuntó algo sin enviar, no se pisa la copia local con datos viejos
+    const datos = await conTope(peticion, copia !== undefined ? TOPE_CON_COPIA : TOPE_SIN_COPIA)
+    marcarLenta(false)
     if ((await local.contarOps()) === 0) await local.setCache(clave, datos)
     else {
-      const copia = await local.getCache<T>(clave)
-      if (copia !== undefined) return copia
+      const guardada = await local.getCache<T>(clave)
+      if (guardada !== undefined) return guardada
     }
     return datos
   } catch (e) {
-    if (esErrorDeRed(e)) {
-      const copia = await local.getCache<T>(clave)
-      if (copia !== undefined) return copia
-      throw new Error(SIN_DATOS)
+    const lenta = e instanceof TopeAgotado
+    if (lenta || esErrorDeRed(e)) {
+      if (lenta) {
+        marcarLenta(true)
+        // Si la respuesta llega más tarde, se guarda para la próxima vez
+        peticion.then((d) => void guardarSiProcede(clave, d)).catch(() => undefined)
+      }
+      const guardada = await local.getCache<T>(clave)
+      if (guardada !== undefined) return guardada
+      throw new Error(lenta ? SIN_BUENA_CONEXION : SIN_DATOS)
     }
     throw e
   }

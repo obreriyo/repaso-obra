@@ -70,7 +70,7 @@ export default function Vivienda() {
         </button>
       }
     >
-      <Estado cargando={viv.cargando || fallos.cargando} error={viv.error || fallos.error || error} />
+      <Estado cargando={viv.cargando || fallos.cargando} error={viv.error || fallos.error || error} reintentar={() => { viv.recargar(); fallos.recargar() }} />
 
       <div className="campo">
         <span className="etiqueta">Estado de la revisión</span>

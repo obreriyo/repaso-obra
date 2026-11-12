@@ -30,7 +30,7 @@ export default function Obras() {
 
   return (
     <Pantalla eyebrow="Repaso de obra" titulo="Mis obras" subtitulo="Elige la obra que vas a revisar">
-      <Estado cargando={cargando} error={error || errorBorrar} />
+      <Estado cargando={cargando} error={error || errorBorrar} reintentar={recargar} />
 
       {obras && obras.length === 0 && (
         <p className="muted">Todavía no tienes ninguna obra. Crea la primera para empezar.</p>

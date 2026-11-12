@@ -113,7 +113,7 @@ export default function Viviendas() {
         </>
       }
     >
-      <Estado cargando={obra.cargando || bloques.cargando || viviendas.cargando} error={obra.error || bloques.error || viviendas.error} />
+      <Estado cargando={obra.cargando || bloques.cargando || viviendas.cargando} error={obra.error || bloques.error || viviendas.error} reintentar={() => { obra.recargar(); bloques.recargar(); viviendas.recargar() }} />
 
       <div className="cifras">
         <div className="cifra">

@@ -88,7 +88,7 @@ export default function Fallos() {
         </button>
       }
     >
-      <Estado cargando={datos.cargando} error={datos.error} />
+      <Estado cargando={datos.cargando} error={datos.error} reintentar={datos.recargar} />
 
       <input type="text" value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="Buscar fallo, vivienda o estancia" aria-label="Buscar" />
 
