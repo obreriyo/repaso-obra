@@ -125,3 +125,6 @@ src/components/          cabecera y navegación, ventana de exportar
 
 ## Firma fija del APK
 El workflow "Generar APK" guarda la clave de firma en tu base de datos (tabla privada `secretos`, sin acceso desde la app). La primera vez la crea y después siempre reutiliza la misma, así cada APK nuevo se instala encima del anterior sin desinstalar. No borres esa tabla.
+
+## Modificar un bloque
+En Viviendas, botón «Modificar (bloque)»: se puede cambiar el nombre, las plantas, el ático y las letras de cada planta. Se añaden las viviendas nuevas y solo se quitan las que no tienen ningún fallo (si tienen, la app avisa y no deja). Los trasteros no se tocan. Requiere la migración `007_modificar_bloque.sql` (se aplica con «Aplicar actualización»). Necesita internet.

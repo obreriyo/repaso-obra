@@ -111,7 +111,7 @@ export default function Fallos() {
         <div className="tarjeta">
           <div className="grid2">
             <select value={bloque} onChange={(e) => setBloque(e.target.value)} aria-label="Bloque">
-              <option value="">Todos los bloques</option>
+              <option value="">Todos bloques</option>
               {opciones.bloques.map((b) => (
                 <option key={b} value={b}>
                   {b}
@@ -119,7 +119,7 @@ export default function Fallos() {
               ))}
             </select>
             <select value={planta} onChange={(e) => setPlanta(e.target.value)} aria-label="Planta">
-              <option value="">Todas las plantas</option>
+              <option value="">Todas plantas</option>
               {opciones.plantas.map((p) => (
                 <option key={p} value={String(p)}>
                   {plantaLarga(p)}
@@ -127,7 +127,7 @@ export default function Fallos() {
               ))}
             </select>
             <select value={prioridad} onChange={(e) => setPrioridad(e.target.value)} aria-label="Prioridad">
-              <option value="">Cualquier prioridad</option>
+              <option value="">Toda prioridad</option>
               <option value="alta">{PRIORIDAD_TEXTO.alta}</option>
               <option value="media">{PRIORIDAD_TEXTO.media}</option>
               <option value="baja">{PRIORIDAD_TEXTO.baja}</option>

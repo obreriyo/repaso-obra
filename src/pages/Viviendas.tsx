@@ -170,6 +170,11 @@ export default function Viviendas() {
         + Añadir bloque
       </Link>
       {bloqueId && (
+        <Link className="btn" to={`/obra/${obraId}/bloque/${bloqueId}/modificar`}>
+          Modificar {nombreBloque || 'este bloque'} (plantas y viviendas)
+        </Link>
+      )}
+      {bloqueId && (
         <Link className="btn" to={`/obra/${obraId}/bloque/${bloqueId}/trasteros`}>
           + Añadir trasteros a {nombreBloque || 'este bloque'}
         </Link>

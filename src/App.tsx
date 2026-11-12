@@ -17,6 +17,7 @@ import Equipo from './pages/Equipo'
 import NuevosTrasteros from './pages/NuevosTrasteros'
 import EstadoSync from './components/EstadoSync'
 import QuienEres from './components/QuienEres'
+import ModificarBloque from './pages/ModificarBloque'
 
 function Privada({ children }: { children: ReactNode }) {
   const { usuario, cargando } = useAuth()
@@ -87,6 +88,7 @@ export default function App() {
       <Route path="/nueva-obra" element={<Privada><NuevaObra /></Privada>} />
       <Route path="/obra/:obraId" element={<Privada><Viviendas /></Privada>} />
       <Route path="/obra/:obraId/nuevo-bloque" element={<Privada><NuevoBloque /></Privada>} />
+      <Route path="/obra/:obraId/bloque/:bloqueId/modificar" element={<Privada><ModificarBloque /></Privada>} />
       <Route path="/obra/:obraId/bloque/:bloqueId/trasteros" element={<Privada><NuevosTrasteros /></Privada>} />
       <Route path="/obra/:obraId/vivienda/:viviendaId" element={<Privada><Vivienda /></Privada>} />
       <Route path="/obra/:obraId/vivienda/:viviendaId/fallo/nuevo" element={<Privada><FalloForm /></Privada>} />

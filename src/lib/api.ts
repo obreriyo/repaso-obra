@@ -214,6 +214,16 @@ export async function crearBloque(obraId: string, nombre: string, plantas: Plant
   return ok(r) as unknown as string
 }
 
+/** Cambia nombre, plantas y viviendas de un bloque. Solo quita viviendas que no tienen fallos. */
+export async function modificarBloque(
+  bloqueId: string,
+  nombre: string,
+  plantas: PlantaNueva[]
+): Promise<{ anadidas: number; quitadas: number }> {
+  const r = await supabase.rpc('modificar_bloque', { p_bloque: bloqueId, p_nombre: nombre, p_plantas: plantas })
+  return ok(r) as unknown as { anadidas: number; quitadas: number }
+}
+
 /** Borra un bloque con sus viviendas, fallos y fotos (también las del almacenamiento). */
 export async function borrarBloque(bloqueId: string): Promise<void> {
   const viviendas = await leerTodo<{ id: string }>((d, h) =>
