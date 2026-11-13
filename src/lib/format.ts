@@ -47,8 +47,29 @@ export const ATICO = 100
 /** Los trasteros se guardan como "viviendas" de la planta 200; su letra es el número del trastero */
 export const TRASTERO = 200
 
-/** Orden de las plantas en pantalla (de arriba abajo): ático, plantas altas, bajo y, al final, trasteros */
+/** Las zonas comunes (portal, escalera…) se guardan como «viviendas» de la planta 300; su letra es el nombre de la zona */
+export const ZONA = 300
+
+/** Zonas comunes que se ofrecen por defecto en cada bloque */
+export const ZONAS_POR_DEFECTO = [
+  'Portal',
+  'Escalera',
+  'Ascensor',
+  'Pasillos',
+  'Sótano',
+  'Garaje',
+  'Cubierta',
+  'Fachada',
+  'Patio',
+  'Cuarto de contadores'
+]
+
+/** Estancias que se ofrecen al apuntar un fallo en una zona común */
+export const ESTANCIAS_ZONA = ['General', 'Suelo', 'Paredes', 'Techo', 'Puertas', 'Iluminación', 'Barandilla', 'Otro']
+
+/** Orden de las plantas en pantalla (de arriba abajo): ático, plantas altas, bajo, trasteros y, al final, zonas comunes */
 export function ordenPlanta(planta: number): number {
+  if (planta === ZONA) return -2
   return planta === TRASTERO ? -1 : planta
 }
 
@@ -56,6 +77,7 @@ export function plantaTexto(planta: number): string {
   if (planta === 0) return 'Bajo'
   if (planta === ATICO) return 'Ático'
   if (planta === TRASTERO) return 'Trastero'
+  if (planta === ZONA) return 'Zona común'
   return `${planta}º`
 }
 
@@ -63,22 +85,26 @@ export function plantaLarga(planta: number): string {
   if (planta === 0) return 'Planta baja'
   if (planta === ATICO) return 'Ático'
   if (planta === TRASTERO) return 'Trasteros'
+  if (planta === ZONA) return 'Zonas comunes'
   return `Planta ${planta}`
 }
 
 /** "2ºB", "Bajo A", "Ático A" o "Trastero 12" */
 export function viviendaNombre(planta: number, letra: string): string {
+  if (planta === ZONA) return letra
   return planta === 0 || planta === ATICO || planta === TRASTERO ? `${plantaTexto(planta)} ${letra}` : `${planta}º${letra}`
 }
 
 /** Texto corto para la insignia de la lista: "2ºB", "Bajo A", "T12"… */
 export function viviendaCorta(planta: number, letra: string): string {
+  if (planta === ZONA) return letra.trim().slice(0, 3)
   if (planta === TRASTERO) return /^t/i.test(letra) ? letra : `T${letra}`
   return viviendaNombre(planta, letra)
 }
 
 /** Título de la pantalla de una vivienda o trastero */
 export function viviendaTitulo(planta: number, letra: string): string {
+  if (planta === ZONA) return letra
   return planta === TRASTERO ? `Trastero ${letra}` : `${plantaLarga(planta)} · Vivienda ${letra}`
 }
 

@@ -5,7 +5,7 @@ import MarcarFoto from '../components/MarcarFoto'
 import { Estado, Pantalla } from '../components/Pantalla'
 import * as api from '../lib/api'
 import { useCarga, useUrlsFotos } from '../lib/hooks'
-import { ESTANCIAS, PRIORIDAD_TEXTO, TIPOS, TRASTERO, mensajeError } from '../lib/format'
+import { ESTANCIAS, ESTANCIAS_ZONA, PRIORIDAD_TEXTO, TIPOS, TRASTERO, ZONA, mensajeError } from '../lib/format'
 import { esNativa } from '../lib/nativo'
 import type { EstadoFallo, Foto, Prioridad } from '../lib/types'
 
@@ -57,6 +57,7 @@ export default function FalloForm() {
   // En un trastero nuevo, la estancia ya es «Trastero»
   useEffect(() => {
     if (!edicion && viv.datos?.planta === TRASTERO) setEstancia((e) => e || 'Trastero')
+    if (!edicion && viv.datos?.planta === ZONA) setEstancia((e) => e || 'General')
   }, [edicion, viv.datos])
 
   const existentes = (datos?.fotos ?? []).filter((f) => !quitadas.some((q) => q.id === f.id))
@@ -231,7 +232,7 @@ export default function FalloForm() {
         <div className="campo">
           <label htmlFor="estancia">Estancia</label>
           <div className="chips">
-            {ESTANCIAS.map((e) => (
+            {(viv.datos?.planta === ZONA ? ESTANCIAS_ZONA : ESTANCIAS).map((e) => (
               <button key={e} type="button" className={`chip ${estancia === e ? 'act' : ''}`} onClick={() => setEstancia(e)}>
                 {e}
               </button>
@@ -239,7 +240,7 @@ export default function FalloForm() {
           </div>
           <input id="estancia" type="text" list="lista-estancias" value={estancia} onChange={(e) => setEstancia(e.target.value)} placeholder="O escribe otra estancia" />
           <datalist id="lista-estancias">
-            {ESTANCIAS.map((e) => (
+            {(viv.datos?.planta === ZONA ? ESTANCIAS_ZONA : ESTANCIAS).map((e) => (
               <option key={e} value={e} />
             ))}
           </datalist>

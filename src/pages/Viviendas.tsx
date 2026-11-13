@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import { Estado, Pantalla } from '../components/Pantalla'
 import * as api from '../lib/api'
 import { useCarga } from '../lib/hooks'
-import { ESTADO_VIVIENDA_TEXTO, mensajeError, ordenPlanta, plantaLarga, viviendaCorta, viviendaTitulo } from '../lib/format'
+import { ESTADO_VIVIENDA_TEXTO, ZONA, mensajeError, ordenPlanta, plantaLarga, viviendaCorta, viviendaTitulo } from '../lib/format'
 import type { EstadoVivienda, Vivienda } from '../lib/types'
 
 type Filtro = 'todas' | 'fallos' | 'sin'
@@ -45,11 +45,13 @@ export default function Viviendas() {
     return true
   })
 
-  const revisadas = todas.filter((v) => v.estado === 'revisada').length
+  // El avance y los «sin revisar» cuentan viviendas y trasteros; las zonas comunes van aparte
+  const unidades = todas.filter((v) => v.planta < ZONA)
+  const revisadas = unidades.filter((v) => v.estado === 'revisada').length
   const abiertos = todas.reduce((s, v) => s + v.fallos_abiertos, 0)
   const reparados = todas.reduce((s, v) => s + v.fallos_reparados, 0)
-  const pendientes = todas.filter((v) => v.estado === 'pendiente').length
-  const pct = todas.length > 0 ? Math.round((revisadas / todas.length) * 100) : 0
+  const pendientes = unidades.filter((v) => v.estado === 'pendiente').length
+  const pct = unidades.length > 0 ? Math.round((revisadas / unidades.length) * 100) : 0
   const nombreBloque = lista.find((b) => b.id === bloqueId)?.nombre ?? ''
 
   async function eliminarBloque() {
@@ -103,7 +105,7 @@ export default function Viviendas() {
             <div className="barra-texto">
               <span>{nombreBloque} · revisadas</span>
               <b style={{ color: '#fff' }}>
-                {revisadas} de {todas.length}
+                {revisadas} de {unidades.length}
               </b>
             </div>
             <div className="barra">
@@ -172,6 +174,11 @@ export default function Viviendas() {
       {bloqueId && (
         <Link className="btn" to={`/obra/${obraId}/bloque/${bloqueId}/modificar`}>
           Modificar {nombreBloque || 'este bloque'} (plantas y viviendas)
+        </Link>
+      )}
+      {bloqueId && (
+        <Link className="btn" to={`/obra/${obraId}/bloque/${bloqueId}/zonas`}>
+          Zonas comunes de {nombreBloque || 'este bloque'}
         </Link>
       )}
       {bloqueId && (

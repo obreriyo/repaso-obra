@@ -686,6 +686,19 @@ export async function cambiarCargo(userId: string, cargo: string, nombre: string
 }
 
 /** Añade trasteros (por número) a un bloque. Devuelve cuántos se han creado. Requiere conexión. */
+/** Añade zonas comunes (por nombre) a un bloque. Devuelve cuántas se han creado. */
+export async function crearZonas(bloqueId: string, nombres: string[]): Promise<number> {
+  const r = await supabase.rpc('crear_zonas', { p_bloque: bloqueId, p_nombres: nombres })
+  return ok(r) as unknown as number
+}
+
+/** Quita una zona común, solo si no tiene fallos. */
+export async function quitarZona(viviendaId: string): Promise<void> {
+  const r = await supabase.rpc('quitar_zona', { p_vivienda: viviendaId })
+  ok(r)
+  await local.delCache(`vivienda:${viviendaId}`)
+}
+
 export async function crearTrasteros(bloqueId: string, numeros: string[]): Promise<number> {
   const r = await supabase.rpc('crear_trasteros', { p_bloque: bloqueId, p_numeros: numeros })
   return ok(r) as unknown as number

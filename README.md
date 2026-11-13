@@ -131,3 +131,6 @@ En Viviendas, botón «Modificar (bloque)»: se puede cambiar el nombre, las pla
 
 ## Carga rápida y conexión lenta
 Al abrir una pantalla se enseña al instante lo que ya está guardado en el móvil y se actualiza en segundo plano. Si pides datos frescos (tras un cambio) y el servidor no responde en 6 s (20 s si no hay nada guardado), se queda lo guardado y sale el aviso «Conexión lenta», o un error con botón «Reintentar». Subir fotos y guardar cambios no tienen límite de espera.
+
+## Zonas comunes
+En Viviendas, botón «Zonas comunes de (bloque)»: se añaden por bloque las zonas de siempre (portal, escalera, ascensor, pasillos, sótano, garaje, cubierta, fachada, patio, cuarto de contadores) y las que se escriban. Cada zona tiene sus fallos, fotos y exportación como una vivienda, pero no cuenta en el avance de viviendas revisadas. Solo se puede quitar una zona sin fallos. Requiere la migración `008_zonas_comunes.sql` (se aplica con «Aplicar actualización»). Necesita internet para crearlas o quitarlas.
