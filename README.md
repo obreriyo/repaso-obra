@@ -134,3 +134,9 @@ Al abrir una pantalla se enseña al instante lo que ya está guardado en el móv
 
 ## Zonas comunes
 En Viviendas, botón «Zonas comunes de (bloque)»: se añaden por bloque las zonas de siempre (portal, escalera, ascensor, pasillos, sótano, garaje, cubierta, fachada, patio, cuarto de contadores) y las que se escriban. Cada zona tiene sus fallos, fotos y exportación como una vivienda, pero no cuenta en el avance de viviendas revisadas. Solo se puede quitar una zona sin fallos. Requiere la migración `008_zonas_comunes.sql` (se aplica con «Aplicar actualización»). Necesita internet para crearlas o quitarlas.
+
+## Fotos: menos descargas
+- Las fotos que ya se han visto (y las que se suben desde este móvil) se guardan en el móvil (hasta ~300 MB, las más antiguas se borran solas) y se pueden ver sin conexión.
+- Al subir una foto nueva se sube también una miniatura (~20 KB, `…_m.jpg`) que usan las listas. Las fotos antiguas no la tienen y se cargan completas una sola vez.
+- Máximo 10 fotos por fallo (constante `MAX_FOTOS` en `FalloForm.tsx`).
+- Al borrar fotos, fallos, bloques u obras también se borran las miniaturas.

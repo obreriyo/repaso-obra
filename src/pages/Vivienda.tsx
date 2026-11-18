@@ -18,7 +18,7 @@ export default function Vivienda() {
   const [error, setError] = useState<string | null>(null)
 
   const lista = fallos.datos ?? []
-  const urls = useUrlsFotos(lista.filter((f) => f.fotos?.length > 0).map((f) => f.fotos[0].path))
+  const urls = useUrlsFotos(lista.filter((f) => f.fotos?.length > 0).map((f) => f.fotos[0].path), true)
 
   const estancias = Array.from(new Set(lista.map((f) => f.estancia))).sort((a, b) => a.localeCompare(b, 'es'))
   const v = viv.datos

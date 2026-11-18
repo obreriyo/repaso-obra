@@ -16,6 +16,9 @@ interface FotoNueva {
 
 const PRIORIDADES: Prioridad[] = ['alta', 'media', 'baja']
 
+/** Máximo de fotos por fallo (cuida el espacio y las descargas) */
+const MAX_FOTOS = 10
+
 export default function FalloForm() {
   const { obraId = '', viviendaId, falloId } = useParams()
   const nav = useNavigate()
@@ -63,15 +66,22 @@ export default function FalloForm() {
   const existentes = (datos?.fotos ?? []).filter((f) => !quitadas.some((q) => q.id === f.id))
   const urls = useUrlsFotos(existentes.map((f) => f.path))
 
+  const cupoFotos = Math.max(0, MAX_FOTOS - existentes.length - nuevas.length)
+
   function añadirFotos(e: ChangeEvent<HTMLInputElement>) {
     const archivos = Array.from(e.target.files ?? [])
-    setNuevas((lista) => [...lista, ...archivos.map((archivo) => ({ archivo, vista: URL.createObjectURL(archivo) }))])
     e.target.value = ''
+    if (archivos.length === 0) return
+    const admitidas = archivos.slice(0, cupoFotos)
+    setError(admitidas.length < archivos.length ? `Máximo ${MAX_FOTOS} fotos por fallo.` : null)
+    if (admitidas.length === 0) return
+    setNuevas((lista) => [...lista, ...admitidas.map((archivo) => ({ archivo, vista: URL.createObjectURL(archivo) }))])
   }
 
   /** En el APK: abre la cámara de Android de verdad (el selector de archivos solo ofrece la galería). */
   async function hacerFoto() {
     setError(null)
+    if (cupoFotos === 0) return setError(`Máximo ${MAX_FOTOS} fotos por fallo.`)
     try {
       const { Camera, CameraResultType, CameraSource } = await import('@capacitor/camera')
       const foto = await Camera.getPhoto({
@@ -226,7 +236,7 @@ export default function FalloForm() {
               <input type="file" accept="image/*" multiple onChange={añadirFotos} />
             </label>
           </div>
-          <span className="muted">Haz una foto con la cámara o elige varias de la galería. Toca «Marcar» en una foto para dibujar círculos o flechas sobre ella.</span>
+          <span className="muted">Haz una foto con la cámara o elige varias de la galería (máximo 10 por fallo). Toca «Marcar» en una foto para dibujar círculos o flechas sobre ella.</span>
         </div>
 
         <div className="campo">

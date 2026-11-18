@@ -66,7 +66,7 @@ export default function Fallos() {
   }, [texto, estado, bloque, planta, prioridad, tipo, subcontrata])
 
   const enPantalla = lista.slice(0, mostrados)
-  const urls = useUrlsFotos(enPantalla.filter((f) => f.fotos?.length > 0).map((f) => f.fotos[0].path))
+  const urls = useUrlsFotos(enPantalla.filter((f) => f.fotos?.length > 0).map((f) => f.fotos[0].path), true)
 
   function limpiar() {
     setBloque('')

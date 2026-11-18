@@ -1,5 +1,6 @@
 import { supabase } from './supabase'
 import { comprimir } from './images'
+import { guardarVista, leerVista, rutaMiniatura } from './fotosCache'
 import * as local from './local'
 import { personaActiva } from './quien'
 import { enLinea, esErrorDeRed, marcarLenta, sincronizar } from './sync'
@@ -270,8 +271,8 @@ export async function borrarObra(id: string): Promise<void> {
   const fotos = await leerTodo<{ path: string }>((d, h) =>
     supabase.from('fotos').select('path').eq('obra_id', id).range(d, h)
   )
-  for (let i = 0; i < fotos.length; i += 100) {
-    await supabase.storage.from('fotos').remove(fotos.slice(i, i + 100).map((f) => f.path))
+  for (let i = 0; i < fotos.length; i += 50) {
+    await supabase.storage.from('fotos').remove(fotos.slice(i, i + 50).flatMap((f) => [f.path, rutaMiniatura(f.path)]))
   }
   ok(await supabase.from('obras').delete().eq('id', id))
 }
@@ -320,8 +321,8 @@ export async function borrarBloque(bloqueId: string): Promise<void> {
       const fotos = await leerTodo<{ path: string }>((d, h) =>
         supabase.from('fotos').select('path').in('fallo_id', grupo).range(d, h)
       )
-      for (let k = 0; k < fotos.length; k += 100) {
-        await supabase.storage.from('fotos').remove(fotos.slice(k, k + 100).map((f) => f.path))
+      for (let k = 0; k < fotos.length; k += 50) {
+        await supabase.storage.from('fotos').remove(fotos.slice(k, k + 50).flatMap((f) => [f.path, rutaMiniatura(f.path)]))
       }
     }
   }
@@ -600,6 +601,95 @@ export async function urlsFotos(paths: string[], segundos = 3600): Promise<Recor
     if (!esErrorDeRed(e)) throw e
   }
   return salida
+}
+
+const urlsVista = new Map<string, string>()
+
+function urlDe(clave: string, blob: Blob): string {
+  const antigua = urlsVista.get(clave)
+  if (antigua) return antigua
+  const url = URL.createObjectURL(blob)
+  urlsVista.set(clave, url)
+  return url
+}
+
+/** Firma direcciones temporales de Supabase; las rutas que no existen se omiten. */
+async function firmar(rutas: string[]): Promise<Record<string, string>> {
+  const salida: Record<string, string> = {}
+  for (let i = 0; i < rutas.length; i += 100) {
+    const r = await supabase.storage.from('fotos').createSignedUrls(rutas.slice(i, i + 100), 3600)
+    if (r.error) throw new Error(r.error.message)
+    for (const f of r.data ?? []) if (f.path && f.signedUrl) salida[f.path] = f.signedUrl
+  }
+  return salida
+}
+
+/**
+ * Carga fotos para enseñarlas, de una en una según llegan (`alListo`).
+ * Primero busca en el móvil (fotos aún sin subir y fotos ya vistas); solo descarga lo que falta
+ * y lo guarda para la próxima vez. Con `miniatura` usa la versión pequeña si existe (las fotos
+ * antiguas no la tienen y se cargan completas).
+ */
+export async function cargarFotos(paths: string[], miniatura: boolean, alListo: (path: string, url: string) => void): Promise<void> {
+  const faltan: string[] = []
+  for (const p of paths) {
+    const clave = p
+    const subida = urlsLocales.get(clave)
+    if (subida) {
+      alListo(p, subida)
+      continue
+    }
+    const sinSubir = await local.leerBlob(p)
+    if (sinSubir) {
+      const url = URL.createObjectURL(sinSubir)
+      urlsLocales.set(clave, url)
+      alListo(p, url)
+      continue
+    }
+    const completa = await leerVista(p)
+    if (completa) {
+      alListo(p, urlDe(p, completa))
+      continue
+    }
+    if (miniatura) {
+      const pequeña = await leerVista(rutaMiniatura(p))
+      if (pequeña) {
+        alListo(p, urlDe(rutaMiniatura(p), pequeña))
+        continue
+      }
+    }
+    faltan.push(p)
+  }
+  if (faltan.length === 0 || !enLinea()) return
+
+  try {
+    const firmadas: Record<string, string> = {}
+    if (miniatura) Object.assign(firmadas, await firmar(faltan.map(rutaMiniatura)))
+    const sinMini = miniatura ? faltan.filter((p) => !firmadas[rutaMiniatura(p)]) : faltan
+    if (sinMini.length > 0) Object.assign(firmadas, await firmar(sinMini))
+
+    const tareas = faltan.map((p) => ({ p, ruta: miniatura && firmadas[rutaMiniatura(p)] ? rutaMiniatura(p) : p }))
+    let siguiente = 0
+    const trabajador = async () => {
+      while (siguiente < tareas.length) {
+        const { p, ruta } = tareas[siguiente++]
+        const direccion = firmadas[ruta]
+        if (!direccion) continue
+        try {
+          const r = await fetch(direccion)
+          if (!r.ok) continue
+          const blob = await r.blob()
+          await guardarVista(ruta, blob).catch(() => undefined)
+          alListo(p, urlDe(ruta, blob))
+        } catch {
+          /* sin conexión o foto no disponible: se reintenta al volver a abrir */
+        }
+      }
+    }
+    await Promise.all([trabajador(), trabajador(), trabajador(), trabajador()])
+  } catch (e) {
+    if (!esErrorDeRed(e)) throw e
+  }
 }
 
 // ---------------------------------------------------------------- equipo

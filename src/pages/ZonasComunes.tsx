@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { Estado, Pantalla } from '../components/Pantalla'
@@ -23,16 +23,8 @@ export default function ZonasComunes() {
   const [elegidas, setElegidas] = useState<string[]>([])
   const [propias, setPropias] = useState<string[]>([])
   const [texto, setTexto] = useState('')
-  const [preparado, setPreparado] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [ocupado, setOcupado] = useState(false)
-
-  // La primera vez que se abre (el bloque aún no tiene zonas), vienen marcadas las de siempre
-  useEffect(() => {
-    if (preparado || !viviendas.datos) return
-    setPreparado(true)
-    if (existentes.length === 0) setElegidas([...ZONAS_POR_DEFECTO])
-  }, [preparado, viviendas.datos, existentes.length])
 
   const disponibles = ZONAS_POR_DEFECTO.filter((z) => !yaTiene.has(z.toLowerCase()))
 

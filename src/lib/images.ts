@@ -2,7 +2,7 @@
  * Reduce una foto del móvil (a veces 5-10 MB) a un JPEG de ~200-400 KB
  * antes de subirla, para no gastar datos ni espacio.
  */
-export async function comprimir(archivo: File, ladoMax = 1600, calidad = 0.72): Promise<Blob> {
+export async function comprimir(archivo: Blob, ladoMax = 1600, calidad = 0.72): Promise<Blob> {
   let bitmap: ImageBitmap
   try {
     bitmap = await createImageBitmap(archivo, { imageOrientation: 'from-image' })
@@ -29,4 +29,9 @@ export async function comprimir(archivo: File, ladoMax = 1600, calidad = 0.72): 
       calidad
     )
   })
+}
+
+/** Miniatura de ~15-30 KB para las listas (lado largo 360 px). */
+export function crearMiniatura(foto: Blob): Promise<Blob> {
+  return comprimir(foto, 360, 0.6)
 }

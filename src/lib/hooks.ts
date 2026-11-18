@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import * as local from './local'
 import { mensajeError } from './format'
-import { EVENTO_DATOS, forzarProximasLecturas, urlsFotos } from './api'
+import { EVENTO_DATOS, cargarFotos, forzarProximasLecturas } from './api'
 
 /**
  * Carga datos asíncronos y expone { datos, error, cargando, recargar }.
@@ -91,7 +91,7 @@ export function useCarga<T>(fn: () => Promise<T>, deps: unknown[]) {
 }
 
 /** Devuelve un mapa ruta -> URL firmada temporal para mostrar fotos privadas. */
-export function useUrlsFotos(paths: string[]): Record<string, string> {
+export function useUrlsFotos(paths: string[], miniatura = false): Record<string, string> {
   const clave = paths.join('|')
   const [urls, setUrls] = useState<Record<string, string>>({})
 
@@ -101,18 +101,16 @@ export function useUrlsFotos(paths: string[]): Record<string, string> {
       setUrls({})
       return
     }
-    urlsFotos(paths)
-      .then((u) => {
-        if (vivo) setUrls(u)
-      })
-      .catch(() => {
-        /* sin fotos no pasa nada */
-      })
+    cargarFotos(paths, miniatura, (p, u) => {
+      if (vivo) setUrls((antes) => (antes[p] === u ? antes : { ...antes, [p]: u }))
+    }).catch(() => {
+      /* sin fotos no pasa nada */
+    })
     return () => {
       vivo = false
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clave])
+  }, [clave, miniatura])
 
   return urls
 }

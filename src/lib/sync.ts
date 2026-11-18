@@ -4,6 +4,8 @@
  * No importa api.ts (api.ts depende de esta pieza).
  */
 import { supabase } from './supabase'
+import { guardarVista, rutaMiniatura } from './fotosCache'
+import { crearMiniatura } from './images'
 import * as local from './local'
 import type { Op } from './local'
 
@@ -129,7 +131,7 @@ async function ejecutar(op: Op): Promise<ErrSb | null> {
     case 'fallo_borrar': {
       const f = await supabase.from('fotos').select('path').eq('fallo_id', d.id)
       if (f.error) return f.error as ErrSb
-      const rutas = (f.data ?? []).map((x: { path: string }) => x.path)
+      const rutas = (f.data ?? []).flatMap((x: { path: string }) => [x.path, rutaMiniatura(x.path)])
       if (rutas.length > 0) {
         const q = await supabase.storage.from('fotos').remove(rutas)
         if (q.error) return q.error as unknown as ErrSb
@@ -142,22 +144,32 @@ async function ejecutar(op: Op): Promise<ErrSb | null> {
       if (!blob) return null // la foto ya no existe en el móvil (se quitó antes de subirla)
       const s = await supabase.storage.from('fotos').upload(d.path, blob, { contentType: 'image/jpeg', upsert: true })
       if (s.error) return s.error as unknown as ErrSb
+      // Miniatura para las listas: si falla no pasa nada, se enseñará la foto completa
+      try {
+        const mini = await crearMiniatura(blob)
+        const m = await supabase.storage.from('fotos').upload(rutaMiniatura(d.path), mini, { contentType: 'image/jpeg', upsert: true })
+        if (!m.error) await guardarVista(rutaMiniatura(d.path), mini)
+      } catch {
+        /* sin miniatura */
+      }
       const r = await supabase.from('fotos').insert({ id: d.foto_id, obra_id: d.obra_id, fallo_id: d.fallo_id, path: d.path })
       const codigo = (r.error as ErrSb | null)?.code
       if (r.error && codigo !== '23505') {
         // 23503 = el fallo ya no existe: se limpia la foto subida y se da por hecho
         if (codigo === '23503') {
-          await supabase.storage.from('fotos').remove([d.path])
+          await supabase.storage.from('fotos').remove([d.path, rutaMiniatura(d.path)])
           await local.borrarBlob(d.path)
           return null
         }
         return r.error as ErrSb
       }
+      // La foto se queda copiada en el móvil para no tener que descargarla luego
+      await guardarVista(d.path, blob).catch(() => undefined)
       await local.borrarBlob(d.path)
       return null
     }
     case 'foto_borrar': {
-      const q = await supabase.storage.from('fotos').remove([d.path])
+      const q = await supabase.storage.from('fotos').remove([d.path, rutaMiniatura(d.path)])
       if (q.error) return q.error as unknown as ErrSb
       const r = await supabase.from('fotos').delete().eq('id', d.foto_id)
       return (r.error as ErrSb | null) ?? null
