@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ChangeEvent, FormEvent } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import MarcarFoto from '../components/MarcarFoto'
 import { Estado, Pantalla } from '../components/Pantalla'
 import * as api from '../lib/api'
-import { useCarga, useUrlsFotos } from '../lib/hooks'
+import { useCarga, usePlan, useUrlsFotos } from '../lib/hooks'
 import { ESTANCIAS, ESTANCIAS_ZONA, PRIORIDAD_TEXTO, TIPOS, TRASTERO, ZONA, mensajeError } from '../lib/format'
 import { esNativa } from '../lib/nativo'
 import type { EstadoFallo, Foto, Prioridad } from '../lib/types'
@@ -66,14 +66,23 @@ export default function FalloForm() {
   const existentes = (datos?.fotos ?? []).filter((f) => !quitadas.some((q) => q.id === f.id))
   const urls = useUrlsFotos(existentes.map((f) => f.path))
 
-  const cupoFotos = Math.max(0, MAX_FOTOS - existentes.length - nuevas.length)
+  const plan = usePlan(obraId)
+  const cupoFallo = Math.max(0, MAX_FOTOS - existentes.length - nuevas.length)
+  // Versión gratuita: tope de fotos entre todas las de la obra
+  const cupoPlan = plan.gratis && plan.estado?.fotos_obra != null
+    ? Math.max(0, plan.estado.max_fotos - plan.estado.fotos_obra - nuevas.length)
+    : Infinity
+  const cupoFotos = Math.min(cupoFallo, cupoPlan)
+  const textoCupo = cupoPlan < cupoFallo || cupoPlan === 0
+    ? 'La versión gratuita permite 15 fotos en total. Pasa a la versión de pago para añadir más.'
+    : `Máximo ${MAX_FOTOS} fotos por fallo.`
 
   function añadirFotos(e: ChangeEvent<HTMLInputElement>) {
     const archivos = Array.from(e.target.files ?? [])
     e.target.value = ''
     if (archivos.length === 0) return
     const admitidas = archivos.slice(0, cupoFotos)
-    setError(admitidas.length < archivos.length ? `Máximo ${MAX_FOTOS} fotos por fallo.` : null)
+    setError(admitidas.length < archivos.length ? textoCupo : null)
     if (admitidas.length === 0) return
     setNuevas((lista) => [...lista, ...admitidas.map((archivo) => ({ archivo, vista: URL.createObjectURL(archivo) }))])
   }
@@ -81,7 +90,7 @@ export default function FalloForm() {
   /** En el APK: abre la cámara de Android de verdad (el selector de archivos solo ofrece la galería). */
   async function hacerFoto() {
     setError(null)
-    if (cupoFotos === 0) return setError(`Máximo ${MAX_FOTOS} fotos por fallo.`)
+    if (cupoFotos === 0) return setError(textoCupo)
     try {
       const { Camera, CameraResultType, CameraSource } = await import('@capacitor/camera')
       const foto = await Camera.getPhoto({
@@ -315,6 +324,7 @@ export default function FalloForm() {
         )}
 
         {error && <p className="error">{error}</p>}
+        {error && /versión gratuita/.test(error) && <Link className="btn-texto" to="/plan">Ver la versión de pago</Link>}
 
         <div className="acciones">
           <button type="button" className="btn" disabled={guardando} onClick={() => nav(volver)}>

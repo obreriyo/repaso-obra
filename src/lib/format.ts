@@ -162,13 +162,19 @@ export function paraArchivo(...partes: string[]): string {
     .replace(/^_+|_+$/g, '')
 }
 
+/** Los errores de límite del plan gratuito empiezan por «PLAN:» en el servidor */
+export function esLimitePlan(e: unknown): boolean {
+  const m = e instanceof Error ? e.message : typeof e === 'string' ? e : ''
+  return m.startsWith('PLAN:')
+}
+
 export function mensajeError(e: unknown): string {
   if (e instanceof Error) {
     if (/failed to fetch|networkerror|load failed|network request failed|aborted/i.test(e.message)) {
       return 'No hay conexión con el servidor. Comprueba tu internet e inténtalo de nuevo.'
     }
-    return e.message
+    return e.message.replace(/^PLAN:\s*/, '')
   }
-  if (typeof e === 'string') return e
+  if (typeof e === 'string') return e.replace(/^PLAN:\s*/, '')
   return 'Ha ocurrido un error inesperado'
 }

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Estado, Pantalla } from '../components/Pantalla'
 import * as api from '../lib/api'
-import { useCarga } from '../lib/hooks'
+import { useCarga, usePlan } from '../lib/hooks'
 import { ESTADO_VIVIENDA_TEXTO, ZONA, mensajeError, ordenPlanta, plantaLarga, viviendaCorta, viviendaTitulo } from '../lib/format'
 import type { EstadoVivienda, Vivienda } from '../lib/types'
 
@@ -16,6 +16,7 @@ const CLASE_ESTADO: Record<EstadoVivienda, string> = {
 
 export default function Viviendas() {
   const { obraId = '' } = useParams()
+  const plan = usePlan(obraId)
   const obra = useCarga(() => api.getObra(obraId), [obraId])
   const bloques = useCarga(() => api.listBloques(obraId), [obraId])
   const [elegido, setElegido] = useState<string | null>(null)
@@ -177,12 +178,12 @@ export default function Viviendas() {
         </Link>
       )}
       {bloqueId && (
-        <Link className="btn" to={`/obra/${obraId}/bloque/${bloqueId}/zonas`}>
+        <Link className="btn" to={plan.gratis ? '/plan' : `/obra/${obraId}/bloque/${bloqueId}/zonas`}>
           Zonas comunes de {nombreBloque || 'este bloque'}
         </Link>
       )}
       {bloqueId && (
-        <Link className="btn" to={`/obra/${obraId}/bloque/${bloqueId}/trasteros`}>
+        <Link className="btn" to={plan.gratis ? '/plan' : `/obra/${obraId}/bloque/${bloqueId}/trasteros`}>
           + Añadir trasteros a {nombreBloque || 'este bloque'}
         </Link>
       )}

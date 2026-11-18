@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { Estado, Pantalla } from '../components/Pantalla'
 import * as api from '../lib/api'
 import { useAuth } from '../lib/auth'
 import { copiaDeSeguridad } from '../lib/copia'
 import { entregar, puedeCompartir } from '../lib/export'
-import { useCarga } from '../lib/hooks'
+import { useCarga, usePlan } from '../lib/hooks'
 import { abrirSelector, personaActiva } from '../lib/quien'
 import type { PersonaCuenta } from '../lib/types'
 import { cargoTexto, fecha, mensajeError, nombrePersona } from '../lib/format'
@@ -22,6 +22,7 @@ function iniciales(nombre: string): string {
 
 export default function Equipo() {
   const { obraId = '' } = useParams()
+  const plan = usePlan(obraId)
   const { usuario } = useAuth()
   const nav = useNavigate()
   const obra = useCarga(() => api.getObra(obraId), [obraId])
@@ -316,7 +317,17 @@ export default function Equipo() {
         </div>
       ))}
 
-      <form onSubmit={invitar} className="tarjeta">
+      {plan.gratis && (
+        <div className="tarjeta">
+          <p>
+            <strong>Invitar a tu equipo es de la versión de pago.</strong>
+          </p>
+          <Link className="btn btn-primario" to="/plan">
+            Ver la versión de pago
+          </Link>
+        </div>
+      )}
+      <form onSubmit={invitar} className="tarjeta" style={plan.gratis ? { display: 'none' } : undefined}>
         <div className="campo">
           <label htmlFor="invitar">Invitar por correo</label>
           <input id="invitar" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="correo@ejemplo.com" required />
@@ -386,7 +397,7 @@ export default function Equipo() {
         )}
         {pError && <p className="error">{pError}</p>}
         {puedoGestionarPersonas && !pEditando && (
-          <button className="btn" onClick={() => abrirPersona(null)}>
+          <button className="btn" onClick={() => (plan.gratis ? nav('/plan') : abrirPersona(null))}>
             + Añadir persona
           </button>
         )}

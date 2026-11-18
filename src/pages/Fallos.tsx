@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import ExportDialog from '../components/ExportDialog'
 import { Estado, Pantalla } from '../components/Pantalla'
 import * as api from '../lib/api'
-import { useCarga, useUrlsFotos } from '../lib/hooks'
+import { useCarga, usePlan, useUrlsFotos } from '../lib/hooks'
 import { PRIORIDAD_TEXTO, fecha, plantaLarga, quienEdito, ubicacion } from '../lib/format'
 
 type FiltroEstado = 'abierto' | 'reparado' | 'todos'
@@ -13,6 +13,8 @@ const TRAMO = 50
 
 export default function Fallos() {
   const { obraId = '' } = useParams()
+  const nav = useNavigate()
+  const plan = usePlan(obraId)
   const obra = useCarga(() => api.getObra(obraId), [obraId])
   const datos = useCarga(() => api.listFallos(obraId), [obraId])
 
@@ -83,7 +85,7 @@ export default function Fallos() {
       eyebrow={obra.datos?.nombre}
       titulo="Fallos"
       derecha={
-        <button className="btn-cab" onClick={() => setExportar(true)} disabled={lista.length === 0}>
+        <button className="btn-cab" onClick={() => (plan.gratis ? nav('/plan') : setExportar(true))} disabled={!plan.gratis && lista.length === 0}>
           Exportar
         </button>
       }

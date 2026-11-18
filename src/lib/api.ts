@@ -881,3 +881,26 @@ export async function descargarObra(obraId: string, soloSiHaceFalta = false): Pr
   await local.setCacheVarios(entradas)
   return true
 }
+
+export interface EstadoPlan {
+  plan: 'gratis' | 'completo'
+  plan_obra: 'gratis' | 'completo' | null
+  obras_propias: number
+  fotos_obra: number | null
+  max_obras: number
+  max_fotos: number
+}
+
+/** Estado del plan. Sin conexión se usa lo último guardado; si no hay nada, null (el servidor es quien manda). */
+export async function estadoPlan(obraId?: string): Promise<EstadoPlan | null> {
+  const clave = `plan:${obraId ?? 'general'}`
+  try {
+    const r = await supabase.rpc('estado_plan', obraId ? { p_obra: obraId } : {})
+    if (r.error) throw r.error
+    const d = r.data as unknown as EstadoPlan
+    await local.setCache(clave, d).catch(() => undefined)
+    return d
+  } catch {
+    return (await local.getCache<EstadoPlan>(clave)) ?? null
+  }
+}

@@ -1,9 +1,9 @@
 import { useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import ExportDialog from '../components/ExportDialog'
 import { Estado, Pantalla } from '../components/Pantalla'
 import * as api from '../lib/api'
-import { useCarga, useUrlsFotos } from '../lib/hooks'
+import { useCarga, usePlan, useUrlsFotos } from '../lib/hooks'
 import { ESTADO_VIVIENDA_TEXTO, PRIORIDAD_TEXTO, mensajeError, viviendaNombre, viviendaTitulo } from '../lib/format'
 import type { EstadoVivienda, Fallo } from '../lib/types'
 
@@ -11,6 +11,8 @@ const ESTADOS: EstadoVivienda[] = ['pendiente', 'en_curso', 'revisada']
 
 export default function Vivienda() {
   const { obraId = '', viviendaId = '' } = useParams()
+  const nav = useNavigate()
+  const plan = usePlan(obraId)
   const viv = useCarga(() => api.getVivienda(viviendaId), [viviendaId])
   const fallos = useCarga(() => api.listFallos(obraId, viviendaId), [obraId, viviendaId])
   const obra = useCarga(() => api.getObra(obraId), [obraId])
@@ -65,7 +67,7 @@ export default function Vivienda() {
       titulo={v ? viviendaTitulo(v.planta, v.letra) : 'Vivienda'}
       subtitulo={v ? `${v.bloque_nombre} · ${v.fallos_abiertos} fallos abiertos · ${v.fallos_reparados} reparados` : undefined}
       derecha={
-        <button className="btn-cab" onClick={() => setExportar(true)} disabled={lista.length === 0}>
+        <button className="btn-cab" onClick={() => (plan.gratis ? nav('/plan') : setExportar(true))} disabled={!plan.gratis && lista.length === 0}>
           Exportar
         </button>
       }

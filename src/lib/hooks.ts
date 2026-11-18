@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import * as local from './local'
 import { mensajeError } from './format'
+import * as api from './api'
 import { EVENTO_DATOS, cargarFotos, forzarProximasLecturas } from './api'
 
 /**
@@ -113,4 +114,18 @@ export function useUrlsFotos(paths: string[], miniatura = false): Record<string,
   }, [clave, miniatura])
 
   return urls
+}
+
+/** Plan de la cuenta / de la obra. Mientras se desconoce se actúa como si fuera completo: el servidor bloquea lo que toque. */
+export function usePlan(obraId?: string) {
+  const [estado, setEstado] = useState<api.EstadoPlan | null>(null)
+  useEffect(() => {
+    let vivo = true
+    api.estadoPlan(obraId).then((d) => vivo && setEstado(d))
+    return () => {
+      vivo = false
+    }
+  }, [obraId])
+  const gratis = obraId ? estado?.plan_obra === 'gratis' : estado?.plan === 'gratis'
+  return { estado, gratis: !!gratis }
 }

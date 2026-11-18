@@ -140,3 +140,11 @@ En Viviendas, botón «Zonas comunes de (bloque)»: se añaden por bloque las zo
 - Al subir una foto nueva se sube también una miniatura (~20 KB, `…_m.jpg`) que usan las listas. Las fotos antiguas no la tienen y se cargan completas una sola vez.
 - Máximo 10 fotos por fallo (constante `MAX_FOTOS` en `FalloForm.tsx`).
 - Al borrar fotos, fallos, bloques u obras también se borran las miniaturas.
+
+## Versión gratuita y de pago
+
+- Gratis: 1 obra, solo la persona que la crea, 15 fotos por obra, solo viviendas (sin trasteros ni zonas comunes), sin exportar PDF/Excel. La copia de seguridad siempre está disponible.
+- Los límites los aplica Supabase (migración `009_planes.sql`, errores que empiezan por `PLAN:`); la app solo los explica (pantalla `/plan`).
+- Cuentas existentes pasan a `completo`. Las nuevas son `gratis`, salvo si su correo está en la tabla `correos_autorizados`. Para cambiar un plan a mano: Table Editor → `profiles` → columna `plan`.
+- Una obra mira el plan de quien la creó: las personas invitadas a una obra de una cuenta completa lo tienen todo.
+- El pago real (Google Play Billing) no está hecho: la pantalla pone «Muy pronto».

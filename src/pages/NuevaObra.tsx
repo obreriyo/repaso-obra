@@ -3,12 +3,15 @@ import type { FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import EditorBloque, { bloqueInicial, nombreBloqueNumero, numViviendas, plantasParaEnviar } from '../components/EditorBloque'
 import { Pantalla } from '../components/Pantalla'
+import { usePlan } from '../lib/hooks'
 import * as api from '../lib/api'
 import { mensajeError } from '../lib/format'
 import type { BloqueNuevo } from '../lib/types'
 
 export default function NuevaObra() {
   const nav = useNavigate()
+  const plan = usePlan()
+  const sinCupo = plan.gratis && (plan.estado?.obras_propias ?? 0) >= (plan.estado?.max_obras ?? 1)
   const [nombre, setNombre] = useState('')
   const [direccion, setDireccion] = useState('')
   const [bloques, setBloques] = useState<BloqueNuevo[]>([bloqueInicial('Bloque A')])
@@ -45,7 +48,18 @@ export default function NuevaObra() {
 
   return (
     <Pantalla titulo="Nueva obra" atras={{ a: '/', texto: 'Mis obras' }}>
-      <form onSubmit={crear} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      {sinCupo && (
+        <div className="tarjeta">
+          <p>
+            <strong>Con la versión gratuita solo puedes tener una obra.</strong>
+          </p>
+          <p className="muted">Tu obra y todos sus datos siguen igual. Para añadir otra obra necesitas la versión de pago.</p>
+          <Link className="btn btn-primario" to="/plan">
+            Ver la versión de pago
+          </Link>
+        </div>
+      )}
+      <form onSubmit={crear} style={{ display: sinCupo ? 'none' : 'flex', flexDirection: 'column', gap: 14 }}>
         <div className="campo">
           <label htmlFor="nombre">Nombre de la obra</label>
           <input id="nombre" type="text" value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Residencial Los Pinos" required />

@@ -161,6 +161,10 @@ async function ejecutar(op: Op): Promise<ErrSb | null> {
           await local.borrarBlob(d.path)
           return null
         }
+        // Límite del plan gratuito: se quita lo subido para no gastar espacio y se avisa
+        if (/^PLAN:/.test((r.error as ErrSb).message ?? '')) {
+          await supabase.storage.from('fotos').remove([d.path, rutaMiniatura(d.path)])
+        }
         return r.error as ErrSb
       }
       // La foto se queda copiada en el móvil para no tener que descargarla luego
