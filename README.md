@@ -148,3 +148,9 @@ En Viviendas, botón «Zonas comunes de (bloque)»: se añaden por bloque las zo
 - Cuentas existentes pasan a `completo`. Las nuevas son `gratis`, salvo si su correo está en la tabla `correos_autorizados`. Para cambiar un plan a mano: Table Editor → `profiles` → columna `plan`.
 - Una obra mira el plan de quien la creó: las personas invitadas a una obra de una cuenta completa lo tienen todo.
 - El pago real (Google Play Billing) no está hecho: la pantalla pone «Muy pronto».
+
+## Versión para Windows
+
+- Carpeta `escritorio/`: envoltorio Electron que abre la app dentro de una ventana. Se genera un único `Repaso-obra.exe` (portable, sin instalar) con el flujo «Generar Windows» (`.github/workflows/windows.yml`, a pegar a mano en GitHub).
+- Usa la misma cuenta y los mismos datos de Supabase que el móvil. Los enlaces de los correos (confirmar cuenta, recuperar contraseña) no funcionan desde el programa de Windows: hay que hacerlo desde el móvil o la web.
+- El .exe no está firmado: Windows avisa con «Windows protegió su PC» (Más información → Ejecutar de todas formas).

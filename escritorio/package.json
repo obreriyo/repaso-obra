@@ -1,0 +1,23 @@
+{
+  "name": "repaso-obra-escritorio",
+  "version": "1.0.0",
+  "description": "Repaso de obra para Windows",
+  "author": "Repaso obra",
+  "main": "main.cjs",
+  "private": true,
+  "devDependencies": {
+    "electron": "33.2.1",
+    "electron-builder": "25.1.8"
+  },
+  "build": {
+    "appId": "com.obreriyo.repasoobra.escritorio",
+    "productName": "Repaso obra",
+    "artifactName": "Repaso-obra.${ext}",
+    "directories": { "output": "release", "buildResources": "build" },
+    "files": ["main.cjs", "dist/**/*"],
+    "win": {
+      "target": [{ "target": "portable", "arch": ["x64"] }],
+      "icon": "build/icon.png"
+    }
+  }
+}
