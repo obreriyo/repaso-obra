@@ -1,5 +1,5 @@
 import CampoClave from '../components/CampoClave'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Navigate } from 'react-router-dom'
 import { supabase, configurado } from '../lib/supabase'
@@ -21,11 +21,36 @@ export default function Login() {
   const [cargoNombre, setCargoNombre] = useState('')
   const [email, setEmail] = useState('')
   const [clave, setClave] = useState('')
+  const [clave2, setClave2] = useState('')
+  const [registrado, setRegistrado] = useState(false)
+  // Mientras se crea la cuenta no se redirige: la sesión puede llegar antes de que termine el registro
+  const creando = useRef(false)
   const [error, setError] = useState<string | null>(null)
   const [mensaje, setMensaje] = useState<string | null>(null)
   const [ocupado, setOcupado] = useState(false)
 
-  if (!cargando && usuario) return <Navigate to="/" replace />
+  if (!cargando && usuario && !registrado && !creando.current) return <Navigate to="/" replace />
+
+  if (registrado) {
+    return (
+      <div className="app">
+        <div className="login-cab">
+          <div className="logo">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#1B1F24" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+          <h1>¡Registro completo!</h1>
+          <p>Tu cuenta está creada y ya puedes empezar a usar la app.</p>
+        </div>
+        <div className="login-form">
+          <button className="btn btn-primario" type="button" onClick={() => setRegistrado(false)}>
+            Empezar
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   async function enviar(e: FormEvent) {
     e.preventDefault()
@@ -38,14 +63,21 @@ export default function Login() {
         if (r.error) throw r.error
       } else if (modo === 'crear') {
         if (clave.length < 6) throw new Error('La contraseña debe tener al menos 6 caracteres.')
+        if (clave !== clave2) throw new Error('Las contraseñas no coinciden. Escríbelas otra vez.')
+        creando.current = true
         const r = await supabase.auth.signUp({
           email: email.trim(),
           password: clave,
           options: { data: { nombre: nombre.trim(), cargo, cargo_nombre: cargoNombre.trim() }, emailRedirectTo: direccionApp() }
         })
         if (r.error) throw r.error
-        if (!r.data.session) {
-          setMensaje('Cuenta creada. Revisa tu correo y pulsa el enlace de confirmación para entrar.')
+        if (r.data.session) {
+          setRegistrado(true)
+        } else {
+          setMensaje('Cuenta creada. Ya puedes entrar con tu correo y contraseña.')
+          setModo('entrar')
+          setClave('')
+          setClave2('')
         }
       } else {
         const r = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo: direccionApp() })
@@ -54,8 +86,15 @@ export default function Login() {
       }
     } catch (err) {
       const texto = mensajeError(err)
-      setError(texto === 'Invalid login credentials' ? 'Correo o contraseña incorrectos.' : texto)
+      setError(
+        texto === 'Invalid login credentials'
+          ? 'Correo o contraseña incorrectos.'
+          : texto === 'User already registered'
+            ? 'Ese correo ya tiene una cuenta. Entra con tu contraseña.'
+            : texto
+      )
     } finally {
+      creando.current = false
       setOcupado(false)
     }
   }
@@ -120,6 +159,13 @@ export default function Login() {
           </div>
         )}
 
+        {modo === 'crear' && (
+          <div className="campo">
+            <label htmlFor="clave2">Repite la contraseña</label>
+            <CampoClave id="clave2" value={clave2} onChange={setClave2} autoComplete="new-password" />
+          </div>
+        )}
+
         {error && <p className="error">{error}</p>}
         {mensaje && <p className="exito">{mensaje}</p>}
 
@@ -129,16 +175,16 @@ export default function Login() {
 
         {modo === 'entrar' && (
           <>
-            <button type="button" className="btn-texto" onClick={() => { setModo('recuperar'); setError(null); setMensaje(null) }}>
+            <button type="button" className="btn-texto" onClick={() => { setModo('recuperar'); setError(null); setMensaje(null); setClave2('') }}>
               ¿Has olvidado la contraseña?
             </button>
-            <button type="button" className="btn-texto" onClick={() => { setModo('crear'); setError(null); setMensaje(null) }}>
+            <button type="button" className="btn-texto" onClick={() => { setModo('crear'); setError(null); setMensaje(null); setClave2('') }}>
               ¿Aún no tienes cuenta? Crear cuenta
             </button>
           </>
         )}
         {modo !== 'entrar' && (
-          <button type="button" className="btn-texto" onClick={() => { setModo('entrar'); setError(null); setMensaje(null) }}>
+          <button type="button" className="btn-texto" onClick={() => { setModo('entrar'); setError(null); setMensaje(null); setClave2('') }}>
             Volver a iniciar sesión
           </button>
         )}

@@ -161,3 +161,8 @@ En Viviendas, botón «Zonas comunes de (bloque)»: se añaden por bloque las zo
 - **Mis obras → «Restaurar una copia de seguridad»**: elige el zip de la copia (Equipo → Copia de seguridad). Crea una obra nueva con sus bloques, viviendas, trasteros, zonas, fallos y subcontratas (función `importar_copia`); si la copia traía fotos, se suben en segundo plano. No se restauran el equipo, la actividad ni quién editó cada fallo (queda la cuenta que restaura). Respeta los límites de la versión gratuita (una obra, 15 fotos, sin trasteros ni zonas comunes).
 - Requiere la migración `010_cuenta_y_copias.sql` (se aplica con «Aplicar actualización»).
 - Para Google Play: la dirección pública para pedir el borrado de datos se rellena aparte en la ficha de la app.
+
+## Registro
+
+- Al crear cuenta se pide la contraseña dos veces («Repite la contraseña») y, al terminar, sale la pantalla «¡Registro completo!» con el botón Empezar.
+- Requiere tener apagado «Confirm email» en Supabase (Authentication → Sign In / Providers → User Signups). Si estuviera encendido, la cuenta se crea pero no entra hasta confirmar el correo.
