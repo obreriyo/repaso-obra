@@ -154,3 +154,10 @@ En Viviendas, botón «Zonas comunes de (bloque)»: se añaden por bloque las zo
 - Carpeta `escritorio/`: envoltorio Electron que abre la app dentro de una ventana. Se genera un único `Repaso-obra.exe` (portable, sin instalar) con el flujo «Generar Windows» (`.github/workflows/windows.yml`, a pegar a mano en GitHub).
 - Usa la misma cuenta y los mismos datos de Supabase que el móvil. Los enlaces de los correos (confirmar cuenta, recuperar contraseña) no funcionan desde el programa de Windows: hay que hacerlo desde el móvil o la web.
 - El .exe no está firmado: Windows avisa con «Windows protegió su PC» (Más información → Ejecutar de todas formas).
+
+## Eliminar la cuenta y restaurar una copia
+
+- **Mis obras → «Mi cuenta · Eliminar cuenta»**: aviso fuerte, lista de obras que se borrarán (y cuántas personas perderían el acceso), botón para descargar antes una copia de cada obra con fotos, y confirmación escribiendo ELIMINAR. Borra primero las fotos del almacenamiento y las obras creadas por la cuenta, y después el usuario (función `eliminar_cuenta`). En las obras de otras personas se quedan los fallos, sin el nombre de quien se va. Necesita internet y vacía lo guardado en el móvil.
+- **Mis obras → «Restaurar una copia de seguridad»**: elige el zip de la copia (Equipo → Copia de seguridad). Crea una obra nueva con sus bloques, viviendas, trasteros, zonas, fallos y subcontratas (función `importar_copia`); si la copia traía fotos, se suben en segundo plano. No se restauran el equipo, la actividad ni quién editó cada fallo (queda la cuenta que restaura). Respeta los límites de la versión gratuita (una obra, 15 fotos, sin trasteros ni zonas comunes).
+- Requiere la migración `010_cuenta_y_copias.sql` (se aplica con «Aplicar actualización»).
+- Para Google Play: la dirección pública para pedir el borrado de datos se rellena aparte en la ficha de la app.

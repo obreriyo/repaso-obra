@@ -8,6 +8,7 @@ import Login from './pages/Login'
 import NuevaClave from './pages/NuevaClave'
 import Obras from './pages/Obras'
 import Plan from './pages/Plan'
+import Cuenta from './pages/Cuenta'
 import NuevaObra from './pages/NuevaObra'
 import NuevoBloque from './pages/NuevoBloque'
 import Viviendas from './pages/Viviendas'
@@ -87,6 +88,7 @@ export default function App() {
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/" element={<Privada><Obras /></Privada>} />
+      <Route path="/cuenta" element={<Privada><Cuenta /></Privada>} />
       <Route path="/plan" element={<Privada><Plan /></Privada>} />
       <Route path="/nueva-obra" element={<Privada><NuevaObra /></Privada>} />
       <Route path="/obra/:obraId" element={<Privada><Viviendas /></Privada>} />

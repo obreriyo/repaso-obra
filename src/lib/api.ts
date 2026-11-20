@@ -904,3 +904,122 @@ export async function estadoPlan(obraId?: string): Promise<EstadoPlan | null> {
     return (await local.getCache<EstadoPlan>(clave)) ?? null
   }
 }
+
+// ------------------------------------------------- cuenta y copias de seguridad
+
+export interface ObraDeCuenta {
+  id: string
+  nombre: string
+  direccion: string | null
+  /** Otras personas con acceso (perderían la obra si se elimina la cuenta) */
+  otros: number
+}
+
+/** Las obras que creó esta cuenta: son las que se borran al eliminarla. */
+export async function obrasDeMiCuenta(): Promise<ObraDeCuenta[]> {
+  const u = (await supabase.auth.getUser()).data.user
+  if (!u) throw new Error('No has iniciado sesión')
+  const obras = ok(await supabase.from('obras').select('id,nombre,direccion').eq('created_by', u.id).order('nombre')) as unknown as {
+    id: string
+    nombre: string
+    direccion: string | null
+  }[]
+  const lista: ObraDeCuenta[] = []
+  for (const o of obras) {
+    const m = await supabase.from('obra_miembros').select('user_id', { count: 'exact', head: true }).eq('obra_id', o.id).neq('user_id', u.id)
+    lista.push({ ...o, otros: m.count ?? 0 })
+  }
+  return lista
+}
+
+/**
+ * Elimina la cuenta y todos sus datos: primero las fotos y las obras que creó, después el usuario.
+ * Necesita internet. Al terminar también vacía lo guardado en el móvil.
+ */
+export async function eliminarCuenta(): Promise<void> {
+  const obras = await obrasDeMiCuenta()
+  for (const o of obras) await borrarObra(o.id)
+  ok(await supabase.rpc('eliminar_cuenta'))
+  await local.borrarTodoLocal()
+}
+
+/** Cierra la sesión solo en este móvil (la cuenta ya no existe en el servidor). */
+export async function cerrarSesionLocal(): Promise<void> {
+  try {
+    await supabase.auth.signOut({ scope: 'local' })
+  } catch {
+    /* nada */
+  }
+}
+
+/**
+ * Restaura una copia de seguridad (el zip que se descarga en Equipo) como una obra nueva de esta cuenta.
+ * Devuelve el id de la obra y un texto para avisar de lo que no se pudo subir.
+ */
+export async function restaurarCopia(
+  archivo: File,
+  progreso: (texto: string) => void
+): Promise<{ obraId: string; aviso: string | null }> {
+  progreso('Leyendo el archivo…')
+  const JSZip = (await import('jszip')).default
+  let zip: Awaited<ReturnType<typeof JSZip.loadAsync>>
+  try {
+    zip = await JSZip.loadAsync(await archivo.arrayBuffer())
+  } catch {
+    throw new Error('Ese archivo no es un zip válido. Elige la copia de seguridad que descargaste desde la app.')
+  }
+  const entrada = zip.file('datos.json')
+  if (!entrada) throw new Error('Este zip no es una copia de seguridad de Repaso de obra (falta datos.json).')
+  let datos: { formato?: string; fallos?: { id: string; fotos?: { path: string }[] }[] }
+  try {
+    datos = JSON.parse(await entrada.async('string'))
+  } catch {
+    throw new Error('El archivo datos.json de la copia está dañado.')
+  }
+  if (datos.formato !== 'repaso-obra-copia') {
+    throw new Error('Este zip no es una copia de seguridad de Repaso de obra.')
+  }
+
+  progreso('Creando la obra con sus viviendas y fallos…')
+  // Solo se envía lo necesario (sin el equipo ni la actividad)
+  const { equipo: _equipo, actividad: _actividad, ...necesario } = datos as Record<string, unknown>
+  void _equipo
+  void _actividad
+  const r = ok(await supabase.rpc('importar_copia', { p_datos: necesario })) as unknown as {
+    obra_id: string
+    fallos: Record<string, string>
+  }
+
+  // Fotos (si la copia las incluía): se ponen en cola y se suben en segundo plano
+  const ficheros = new Map<string, { async: (t: 'blob') => Promise<Blob> }>()
+  zip.forEach((ruta, obj) => {
+    if (!obj.dir && ruta.startsWith('fotos/')) ficheros.set(ruta.split('/').pop() ?? ruta, obj)
+  })
+  const pendientes: { nombre: string; falloNuevo: string }[] = []
+  for (const f of datos.fallos ?? []) {
+    const nuevo = r.fallos[f.id]
+    if (!nuevo) continue
+    ;(f.fotos ?? []).forEach((_, i) => {
+      const nombre = `${f.id.slice(0, 8)}_${i + 1}.jpg`
+      if (ficheros.has(nombre)) pendientes.push({ nombre, falloNuevo: nuevo })
+    })
+  }
+
+  let aviso: string | null = null
+  if (pendientes.length > 0) {
+    const plan = await estadoPlan(r.obra_id)
+    const tope = plan?.plan_obra === 'gratis' ? plan.max_fotos : Infinity
+    const subir = pendientes.slice(0, tope)
+    for (let i = 0; i < subir.length; i++) {
+      progreso(`Preparando fotos… ${i + 1} de ${subir.length}`)
+      const blob = await (ficheros.get(subir[i].nombre) as { async: (t: 'blob') => Promise<Blob> }).async('blob')
+      await subirFoto(r.obra_id, subir[i].falloNuevo, new File([blob], subir[i].nombre, { type: 'image/jpeg' }))
+    }
+    if (subir.length < pendientes.length) {
+      aviso = `La versión gratuita permite ${tope} fotos: se han restaurado ${subir.length} de ${pendientes.length}.`
+    } else {
+      aviso = 'Las fotos se irán subiendo en segundo plano; mantén la app abierta con internet hasta que termine.'
+    }
+  }
+  return { obraId: r.obra_id, aviso }
+}

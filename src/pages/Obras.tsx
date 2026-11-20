@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import type { ChangeEvent } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { Estado, Pantalla } from '../components/Pantalla'
 import * as api from '../lib/api'
 import { useAuth } from '../lib/auth'
-import { mensajeError } from '../lib/format'
+import { esLimitePlan, mensajeError } from '../lib/format'
 import { useCarga } from '../lib/hooks'
 import type { Obra } from '../lib/types'
 
@@ -12,6 +13,25 @@ export default function Obras() {
   const { datos: obras, error, cargando, recargar } = useCarga(() => api.listObras(), [])
   const [errorBorrar, setErrorBorrar] = useState<string | null>(null)
   const [borrando, setBorrando] = useState<string | null>(null)
+  const nav = useNavigate()
+  const [restaurando, setRestaurando] = useState<string | null>(null)
+  const [errorRestaurar, setErrorRestaurar] = useState<{ texto: string; plan: boolean } | null>(null)
+
+  async function restaurar(e: ChangeEvent<HTMLInputElement>) {
+    const archivo = e.target.files?.[0]
+    e.target.value = ''
+    if (!archivo) return
+    setErrorRestaurar(null)
+    setRestaurando('Empezando…')
+    try {
+      const r = await api.restaurarCopia(archivo, setRestaurando)
+      if (r.aviso) window.alert(r.aviso)
+      nav(`/obra/${r.obraId}`)
+    } catch (err) {
+      setErrorRestaurar({ texto: mensajeError(err), plan: esLimitePlan(err) })
+      setRestaurando(null)
+    }
+  }
 
   async function eliminar(o: Obra) {
     if (!window.confirm(`¿Eliminar la obra «${o.nombre}» con sus ${o.viviendas} viviendas, todos sus fallos y fotos? No se puede deshacer.`)) return
@@ -70,6 +90,21 @@ export default function Obras() {
 
       <Link className="btn btn-primario" to="/nueva-obra">
         + Nueva obra
+      </Link>
+
+      <label className="btn" style={{ textAlign: 'center' }}>
+        {restaurando ?? 'Restaurar una copia de seguridad'}
+        <input type="file" accept=".zip,application/zip" onChange={(e) => void restaurar(e)} disabled={restaurando !== null} style={{ display: 'none' }} />
+      </label>
+      {errorRestaurar && <p className="error">{errorRestaurar.texto}</p>}
+      {errorRestaurar?.plan && (
+        <Link className="btn-texto" to="/plan">
+          Ver la versión de pago
+        </Link>
+      )}
+
+      <Link className="btn-texto" to="/cuenta">
+        Mi cuenta · Eliminar cuenta
       </Link>
 
       <div className="pie-sesion">

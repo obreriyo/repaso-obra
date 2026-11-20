@@ -221,3 +221,31 @@ export function sesionGuardada(): { user: { id: string; email?: string; user_met
   }
   return null
 }
+
+/** Borra todo lo guardado en el móvil (datos, cambios pendientes, fotos y quién eres). Se usa al eliminar la cuenta. */
+export async function borrarTodoLocal(): Promise<void> {
+  memCache.clear()
+  memBlobs.clear()
+  memCola = []
+  try {
+    localStorage.removeItem('repaso-quien')
+  } catch {
+    /* sin acceso */
+  }
+  try {
+    if (bd) {
+      const db = await bd
+      if (db) db.close()
+      bd = null
+    }
+    if (typeof indexedDB === 'undefined') return
+    await new Promise<void>((resolver) => {
+      const p = indexedDB.deleteDatabase(NOMBRE_BD)
+      p.onsuccess = () => resolver()
+      p.onerror = () => resolver()
+      p.onblocked = () => resolver()
+    })
+  } catch {
+    /* nada */
+  }
+}
